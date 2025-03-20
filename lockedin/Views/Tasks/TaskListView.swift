@@ -125,21 +125,14 @@ struct TaskListView: View {
                 Section(header: Text("Completed Tasks")) {
                     ForEach(taskManager.tasks.filter { $0.status != .pending }) { task in
                         TaskRowView(task: task)
+                            .contentShape(Rectangle())
+                            .onTapGesture {
+                                selectedTask = task
+                                showingTaskEvidence = true
+                            }
                     }
                 }
             }
         }
-    }
-}
-
-
-struct TaskListView_Previews: PreviewProvider {
-    static var previews: some View {
-        let taskManager = TaskManager()
-        // Add some sample tasks for preview
-        taskManager.addTask(.predefined(title: "Morning Meditation", description: "Complete a 10-minute meditation session"))
-        taskManager.addTask(.custom(title: "Custom Task", description: "This is a custom task"))
-        
-        return TaskListView(taskManager: taskManager)
     }
 }

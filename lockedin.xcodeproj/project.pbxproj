@@ -6,6 +6,12 @@
 	objectVersion = 77;
 	objects = {
 
+/* Begin PBXBuildFile section */
+		277216272D8C127300F4E203 /* FamilyControls.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 277216262D8C127300F4E203 /* FamilyControls.framework */; };
+		277216292D8C128800F4E203 /* ManagedSettings.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 277216282D8C128800F4E203 /* ManagedSettings.framework */; };
+		2772162B2D8C129100F4E203 /* DeviceActivity.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 2772162A2D8C129100F4E203 /* DeviceActivity.framework */; };
+/* End PBXBuildFile section */
+
 /* Begin PBXContainerItemProxy section */
 		27E255212D88FDF30009A767 /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
@@ -24,14 +30,30 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
+		277216262D8C127300F4E203 /* FamilyControls.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = FamilyControls.framework; path = System/Library/Frameworks/FamilyControls.framework; sourceTree = SDKROOT; };
+		277216282D8C128800F4E203 /* ManagedSettings.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = ManagedSettings.framework; path = System/Library/Frameworks/ManagedSettings.framework; sourceTree = SDKROOT; };
+		2772162A2D8C129100F4E203 /* DeviceActivity.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = DeviceActivity.framework; path = System/Library/Frameworks/DeviceActivity.framework; sourceTree = SDKROOT; };
 		27E255102D88FDEE0009A767 /* lockedin.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = lockedin.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		27E255202D88FDF30009A767 /* lockedinTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = lockedinTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		27E2552A2D88FDF30009A767 /* lockedinUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = lockedinUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
+/* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
+		277216202D8C0F4400F4E203 /* Exceptions for "lockedin" folder in "lockedin" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+			);
+			target = 27E2550F2D88FDEE0009A767 /* lockedin */;
+		};
+/* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
+
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		27E255122D88FDEE0009A767 /* lockedin */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				277216202D8C0F4400F4E203 /* Exceptions for "lockedin" folder in "lockedin" target */,
+			);
 			path = lockedin;
 			sourceTree = "<group>";
 		};
@@ -52,6 +74,9 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				277216272D8C127300F4E203 /* FamilyControls.framework in Frameworks */,
+				277216292D8C128800F4E203 /* ManagedSettings.framework in Frameworks */,
+				2772162B2D8C129100F4E203 /* DeviceActivity.framework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -72,12 +97,23 @@
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
+		277216252D8C127300F4E203 /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+				2772162A2D8C129100F4E203 /* DeviceActivity.framework */,
+				277216282D8C128800F4E203 /* ManagedSettings.framework */,
+				277216262D8C127300F4E203 /* FamilyControls.framework */,
+			);
+			name = Frameworks;
+			sourceTree = "<group>";
+		};
 		27E255072D88FDED0009A767 = {
 			isa = PBXGroup;
 			children = (
 				27E255122D88FDEE0009A767 /* lockedin */,
 				27E255232D88FDF30009A767 /* lockedinTests */,
 				27E2552D2D88FDF30009A767 /* lockedinUITests */,
+				277216252D8C127300F4E203 /* Frameworks */,
 				27E255112D88FDEE0009A767 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -399,8 +435,11 @@
 				DEVELOPMENT_TEAM = K5F4889226;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = lockedin/Info.plist;
+				INFOPLIST_KEY_LSApplicationCategoryType = "";
 				INFOPLIST_KEY_NSCameraUsageDescription = "LockedIn needs camera access to take photos as evidence of completed tasks.";
 				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "LockedIn needs access to your photos so you can submit evidence of completed tasks.";
+				INFOPLIST_KEY_NSUserTrackingUsageDescription = "LockedIn requires access to Screen Time data to restrict distracting apps until your tasks are completed.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
@@ -431,8 +470,11 @@
 				DEVELOPMENT_TEAM = K5F4889226;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = lockedin/Info.plist;
+				INFOPLIST_KEY_LSApplicationCategoryType = "";
 				INFOPLIST_KEY_NSCameraUsageDescription = "LockedIn needs camera access to take photos as evidence of completed tasks.";
 				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "LockedIn needs access to your photos so you can submit evidence of completed tasks.";
+				INFOPLIST_KEY_NSUserTrackingUsageDescription = "LockedIn requires access to Screen Time data to restrict distracting apps until your tasks are completed.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;

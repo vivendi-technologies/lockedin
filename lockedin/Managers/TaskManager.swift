@@ -12,6 +12,10 @@ import SwiftUI
 class TaskManager: ObservableObject {
     @Published var tasks: [Task] = []
     
+    // New properties to add here:
+    @Published var restrictionManager = AppRestrictionManager()
+    private var taskCompletionCheckTimer: Timer?
+    
     // Predefined tasks that the app will offer
     private let predefinedTasks: [Task] = [
         .predefined(title: "Morning Meditation", description: "Complete a 10-minute meditation session"),
@@ -26,6 +30,10 @@ class TaskManager: ObservableObject {
     
     init() {
         loadTasks()
+        taskCompletionCheckTimer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { [weak self] _ in
+                guard let self = self else { return }
+                self.restrictionManager.checkTaskCompletion(tasks: self.tasks)
+            }
     }
     
     // MARK: - Task Management
@@ -58,6 +66,23 @@ class TaskManager: ObservableObject {
         }
     }
     
+    func updateTaskEvidence(id: UUID, textDescription: String? = nil, imageData: Data? = nil) {
+        if let index = tasks.firstIndex(where: { $0.id == id }) {
+            // Update the evidence while preserving the completion date and status
+            let originalCompletionDate = tasks[index].completionDate
+            let originalStatus = tasks[index].status
+            
+            // Update the evidence
+            tasks[index].evidence = TaskEvidence(textDescription: textDescription, imageData: imageData)
+            
+            // Restore original completion date and status
+            tasks[index].completionDate = originalCompletionDate
+            tasks[index].status = originalStatus
+            
+            saveTasks()
+        }
+    }
+    
     // MARK: - Persistence
     
     private func saveTasks() {
@@ -76,5 +101,9 @@ class TaskManager: ObservableObject {
         
         // Initialize with empty array if no saved tasks
         tasks = []
+    }
+    
+    deinit {
+        taskCompletionCheckTimer?.invalidate()
     }
 }
