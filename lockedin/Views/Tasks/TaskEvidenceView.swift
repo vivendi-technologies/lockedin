@@ -6,46 +6,25 @@
 //
 import SwiftUI
 import PhotosUI
-import UIKit
+import AVFoundation
 
-/// A view for submitting or editing evidence for a task
 struct TaskEvidenceView: View {
-    /// The task manager to update when evidence is submitted
     @ObservedObject var taskManager: TaskManager
-    
-    /// The task to be completed or edited
     let task: Task
     
-    /// Used to dismiss the view
     @Environment(\.presentationMode) var presentationMode
     
-    /// Text evidence provided by the user
     @State private var textEvidence: String = ""
-    
-    /// Image evidence selected by the user
     @State private var imageEvidence: UIImage?
-    
-    /// Controls the display of the image picker
     @State private var showingImagePicker = false
-    
-    /// Controls the display of the image source picker (camera/library)
     @State private var showingImageSourcePicker = false
-    
-    /// Controls the display of validation alerts
     @State private var showAlert = false
-    
-    /// Message to display in the alert
     @State private var alertMessage = ""
     @State private var alertTitle = ""
-    
-    /// Flag to determine if we're editing existing evidence
     @State private var isEditing: Bool = false
-    
-    /// Flag to track if view has completed initialization
     @State private var isViewReady: Bool = false
     @State private var sourceType: UIImagePickerController.SourceType = .photoLibrary
     
-    /// Initialize the view with proper state for new or existing evidence
     init(taskManager: TaskManager, task: Task) {
         self.taskManager = taskManager
         self.task = task
@@ -68,6 +47,9 @@ struct TaskEvidenceView: View {
                 // Show a loading view until initialization is complete
                 ProgressView()
                     .onAppear {
+                        // Load existing image if available
+                        loadExistingData()
+                        
                         // Delay to ensure view is fully loaded before showing content
                         DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
                             self.isViewReady = true
@@ -148,7 +130,7 @@ struct TaskEvidenceView: View {
                                 .foregroundColor(.red)
                         }
                     } else {
-                        // Button to show the image source picker (camera or library)
+                        // Button to show camera/photo library options
                         Button(action: {
                             showingImageSourcePicker = true
                         }) {
@@ -161,6 +143,7 @@ struct TaskEvidenceView: View {
                 Section {
                     Button(isEditing ? "Update Submission" : "Confirm Completion") {
                         if textEvidence.isEmpty && imageEvidence == nil {
+                            alertTitle = "Input Required"
                             alertMessage = "Please share how you completed this task - a quick note or a photo would be great!"
                             showAlert = true
                         } else {
@@ -181,28 +164,32 @@ struct TaskEvidenceView: View {
             })
             .alert(isPresented: $showAlert) {
                 Alert(
-                    title: Text("Input Required"),
+                    title: Text(alertTitle),
                     message: Text(alertMessage),
                     dismissButton: .default(Text("OK"))
                 )
             }
             .sheet(isPresented: $showingImagePicker) {
-                // Use the ImagePicker component for photo library
-                ImagePicker(image: $imageEvidence)
+                ImagePicker(image: $imageEvidence, sourceType: sourceType)
             }
             .actionSheet(isPresented: $showingImageSourcePicker) {
-                // Use the utility struct to create the action sheet
-                ImageSourcePickerOptions.makeActionSheet(
-                    image: $imageEvidence,
-                    isPresented: $showingImageSourcePicker
+                // Action sheet for choosing camera or photo library
+                ActionSheet(
+                    title: Text("Select Photo Source"),
+                    message: Text("Choose where to get your photo from"),
+                    buttons: [
+                        .default(Text("Take Photo")) {
+                            checkCameraPermission()
+                        },
+                        .default(Text("Photo Library")) {
+                            sourceType = .photoLibrary
+                            showingImagePicker = true
+                        },
+                        .cancel()
+                    ]
                 )
             }
         }
-        .onAppear {
-            // Load existing image if available
-            loadExistingData()
-        }
-        .navigationViewStyle(StackNavigationViewStyle())
     }
     
     // Helper function to check camera permission
@@ -249,42 +236,24 @@ struct TaskEvidenceView: View {
         }
     }
     
-    /// Loads existing task data if available
+    // Loads existing task data if available
     private func loadExistingData() {
-        // Determine if we're editing
-        isEditing = task.status != .pending && task.evidence != nil
-        
         // Load existing image if available using the getImage() method
         if let image = task.evidence?.getImage() {
             imageEvidence = image
         }
     }
     
-    /// Saves the evidence and updates the task status
+    // Saves the evidence and updates the task status
     private func saveEvidence() {
-        var imageData: UIImage? = nil
-        if let image = imageEvidence {
-            imageData = image.jpegData(compressionQuality: 0.8)
-        }
-        
         let textInput = textEvidence.isEmpty ? nil : textEvidence
         
         if isEditing {
             // Just update the evidence
-            taskManager.updateTaskEvidence(id: task.id, textDescription: textInput, imageData: imageData)
+            taskManager.updateTaskEvidence(id: task.id, textDescription: textInput, imageData: imageEvidence)
         } else {
             // Complete the task with the new evidence
-            taskManager.completeTask(id: task.id, textDescription: textInput, imageData: imageData)
+            taskManager.completeTask(id: task.id, textDescription: textInput, imageData: imageEvidence)
         }
-    }
-}
-
-// MARK: - Preview
-struct TaskEvidenceView_Previews: PreviewProvider {
-    static var previews: some View {
-        let taskManager = TaskManager()
-        let task = Task.predefined(title: "Morning Meditation", description: "Complete a 10-minute meditation session")
-        
-        return TaskEvidenceView(taskManager: taskManager, task: task)
     }
 }
