@@ -441,7 +441,7 @@
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.productivity";
 				INFOPLIST_KEY_NSCameraUsageDescription = "LockedIn needs camera access to take photos as evidence of completed tasks.";
 				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "LockedIn needs access to your photos so you can submit evidence of completed tasks.";
-				INFOPLIST_KEY_NSUserTrackingUsageDescription = "LockedIn requires access to Screen Time data to restrict distracting apps until your tasks are completed.";
+				INFOPLIST_KEY_NSUserTrackingUsageDescription = "Bloomer requires access to Screen Time data to restrict distracting apps until your tasks are completed.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
@@ -478,7 +478,7 @@
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.productivity";
 				INFOPLIST_KEY_NSCameraUsageDescription = "LockedIn needs camera access to take photos as evidence of completed tasks.";
 				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "LockedIn needs access to your photos so you can submit evidence of completed tasks.";
-				INFOPLIST_KEY_NSUserTrackingUsageDescription = "LockedIn requires access to Screen Time data to restrict distracting apps until your tasks are completed.";
+				INFOPLIST_KEY_NSUserTrackingUsageDescription = "Bloomer requires access to Screen Time data to restrict distracting apps until your tasks are completed.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;

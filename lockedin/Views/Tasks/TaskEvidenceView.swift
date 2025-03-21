@@ -4,10 +4,9 @@
 //
 //  Created by Kevin Le on 3/17/25.
 //
-
-
 import SwiftUI
-import Foundation
+import PhotosUI
+import UIKit
 
 /// A view for submitting or editing evidence for a task
 struct TaskEvidenceView: View {
@@ -21,7 +20,7 @@ struct TaskEvidenceView: View {
     @Environment(\.presentationMode) var presentationMode
     
     /// Text evidence provided by the user
-    @State private var textEvidence: String
+    @State private var textEvidence: String = ""
     
     /// Image evidence selected by the user
     @State private var imageEvidence: UIImage?
@@ -29,35 +28,56 @@ struct TaskEvidenceView: View {
     /// Controls the display of the image picker
     @State private var showingImagePicker = false
     
+    /// Controls the display of the image source picker (camera/library)
+    @State private var showingImageSourcePicker = false
+    
     /// Controls the display of validation alerts
     @State private var showAlert = false
     
     /// Message to display in the alert
     @State private var alertMessage = ""
+    @State private var alertTitle = ""
     
     /// Flag to determine if we're editing existing evidence
-    @State private var isEditing: Bool
+    @State private var isEditing: Bool = false
+    
+    /// Flag to track if view has completed initialization
+    @State private var isViewReady: Bool = false
+    @State private var sourceType: UIImagePickerController.SourceType = .photoLibrary
     
     /// Initialize the view with proper state for new or existing evidence
     init(taskManager: TaskManager, task: Task) {
         self.taskManager = taskManager
         self.task = task
         
-        // Check if we're editing an existing task with evidence
         let isEditingTask = task.status != .pending && task.evidence != nil
         self._isEditing = State(initialValue: isEditingTask)
         
-        // Initialize text evidence from existing data if available
         if let existingText = task.evidence?.textDescription {
             self._textEvidence = State(initialValue: existingText)
         } else {
             self._textEvidence = State(initialValue: "")
         }
-        
-        // Image will be loaded in onAppear
     }
     
     var body: some View {
+        Group {
+            if isViewReady {
+                content
+            } else {
+                // Show a loading view until initialization is complete
+                ProgressView()
+                    .onAppear {
+                        // Delay to ensure view is fully loaded before showing content
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                            self.isViewReady = true
+                        }
+                    }
+            }
+        }
+    }
+    
+    private var content: some View {
         NavigationView {
             Form {
                 // Task information section
@@ -97,7 +117,7 @@ struct TaskEvidenceView: View {
                         .overlay(
                             Group {
                                 if textEvidence.isEmpty {
-                                    Text("Describe how you completed this task...")
+                                    Text("Enter text...")
                                         .foregroundColor(Color.secondary)
                                         .padding(.horizontal, 4)
                                         .padding(.vertical, 8)
@@ -108,7 +128,7 @@ struct TaskEvidenceView: View {
                 }
                 
                 // Photo evidence section
-                Section(header: Text("Show us a photo")) {
+                Section(header: Text("Pics or it didn't happen!")) {
                     if let image = imageEvidence {
                         // Display the selected image
                         HStack {
@@ -128,31 +148,34 @@ struct TaskEvidenceView: View {
                                 .foregroundColor(.red)
                         }
                     } else {
-                        // Button to show the image picker
+                        // Button to show the image source picker (camera or library)
                         Button(action: {
-                            showingImagePicker = true
+                            showingImageSourcePicker = true
                         }) {
-                            Label("Upload Photo", systemImage: "photo")
+                            Label("Add a Photo", systemImage: "camera.fill")
                         }
                     }
                 }
                 
                 // Complete/Update task button
                 Section {
-                    Button(isEditing ? "Update Task" : "Confirm Completion") {
+                    Button(isEditing ? "Update Submission" : "Confirm Completion") {
                         if textEvidence.isEmpty && imageEvidence == nil {
                             alertMessage = "Please share how you completed this task - a quick note or a photo would be great!"
                             showAlert = true
                         } else {
                             saveEvidence()
-                            presentationMode.wrappedValue.dismiss()
+                            // Delay dismissal slightly to ensure state is updated
+                            DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
+                                presentationMode.wrappedValue.dismiss()
+                            }
                         }
                     }
                     .frame(maxWidth: .infinity, alignment: .center)
                     .foregroundColor(isEditing ? .blue : .green)
                 }
             }
-            .navigationTitle(isEditing ? "Your Completed Task" : "Complete Task")
+            .navigationTitle(isEditing ? "Update Submission" : "Complete Task")
             .navigationBarItems(trailing: Button("Cancel") {
                 presentationMode.wrappedValue.dismiss()
             })
@@ -164,22 +187,82 @@ struct TaskEvidenceView: View {
                 )
             }
             .sheet(isPresented: $showingImagePicker) {
-                // Use the ImagePicker component
+                // Use the ImagePicker component for photo library
                 ImagePicker(image: $imageEvidence)
             }
-            .onAppear {
-                // Load existing image if available
-                if let imageData = task.evidence?.imageData,
-                   let uiImage = UIImage(data: imageData) {
-                    imageEvidence = uiImage
+            .actionSheet(isPresented: $showingImageSourcePicker) {
+                // Use the utility struct to create the action sheet
+                ImageSourcePickerOptions.makeActionSheet(
+                    image: $imageEvidence,
+                    isPresented: $showingImageSourcePicker
+                )
+            }
+        }
+        .onAppear {
+            // Load existing image if available
+            loadExistingData()
+        }
+        .navigationViewStyle(StackNavigationViewStyle())
+    }
+    
+    // Helper function to check camera permission
+    private func checkCameraPermission() {
+        switch AVCaptureDevice.authorizationStatus(for: .video) {
+        case .authorized:
+            // Permission already granted, show camera
+            sourceType = .camera
+            showingImagePicker = true
+            
+        case .notDetermined:
+            // Permission not determined yet, request permission
+            AVCaptureDevice.requestAccess(for: .video) { granted in
+                DispatchQueue.main.async {
+                    if granted {
+                        sourceType = .camera
+                        showingImagePicker = true
+                    } else {
+                        showCameraPermissionAlert()
+                    }
                 }
             }
+            
+        case .denied, .restricted:
+            // Permission previously denied, show alert
+            showCameraPermissionAlert()
+            
+        @unknown default:
+            // Handle future cases
+            showCameraPermissionAlert()
+        }
+    }
+    
+    // Helper function to show camera permission alert
+    private func showCameraPermissionAlert() {
+        alertTitle = "Camera Access"
+        alertMessage = "Please allow camera access in Settings to take photos. Would you like to choose from your photo library instead?"
+        showAlert = true
+        
+        // After alert is dismissed, show photo library picker
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+            sourceType = .photoLibrary
+            showingImagePicker = true
+        }
+    }
+    
+    /// Loads existing task data if available
+    private func loadExistingData() {
+        // Determine if we're editing
+        isEditing = task.status != .pending && task.evidence != nil
+        
+        // Load existing image if available using the getImage() method
+        if let image = task.evidence?.getImage() {
+            imageEvidence = image
         }
     }
     
     /// Saves the evidence and updates the task status
     private func saveEvidence() {
-        var imageData: Data? = nil
+        var imageData: UIImage? = nil
         if let image = imageEvidence {
             imageData = image.jpegData(compressionQuality: 0.8)
         }

@@ -4,8 +4,6 @@
 //
 //  Created by Kevin Le on 3/17/25.
 //
-
-
 import Foundation
 import SwiftUI
 
@@ -26,13 +24,19 @@ enum TaskStatus: String, Codable {
 struct TaskEvidence: Identifiable, Codable {
     var id = UUID()
     var textDescription: String?
-    var imageData: Data?
+    var imageFilename: String?  // Store filename instead of raw image data
     var dateSubmitted: Date
     
-    init(textDescription: String? = nil, imageData: Data? = nil) {
+    init(textDescription: String? = nil, imageFilename: String? = nil) {
         self.textDescription = textDescription
-        self.imageData = imageData
+        self.imageFilename = imageFilename
         self.dateSubmitted = Date()
+    }
+    
+    // Function to get the image if available
+    func getImage() -> UIImage? {
+        guard let filename = imageFilename else { return nil }
+        return FileUtility.loadImage(filename: filename)
     }
 }
 
@@ -58,8 +62,9 @@ struct Task: Identifiable, Codable {
     }
     
     // Method to submit evidence and mark task as completed
+    // Note: This is for backwards compatibility - actual handling is in TaskManager
     mutating func complete(textDescription: String? = nil, imageData: Data? = nil) {
-        self.evidence = TaskEvidence(textDescription: textDescription, imageData: imageData)
+        self.evidence = TaskEvidence(textDescription: textDescription)
         self.status = .completed
         self.completionDate = Date()
     }
