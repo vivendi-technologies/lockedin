@@ -28,11 +28,11 @@ struct TaskListView: View {
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Menu {
-                        Button("Add Custom Task") {
+                        Button("Create a Task") {
                             showingAddTask = true
                         }
                         
-                        Button("Select from Predefined") {
+                        Button("Choose from Existing") {
                             showingSelectPredefined = true
                         }
                     } label: {
@@ -47,10 +47,14 @@ struct TaskListView: View {
                 PredefinedTasksView(taskManager: taskManager)
             }
             .sheet(isPresented: $showingTaskEvidence, onDismiss: {
-                selectedTask = nil
+                // Clear selection after a short delay to avoid potential state conflicts
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+                    selectedTask = nil
+                }
             }) {
                 if let task = selectedTask {
                     TaskEvidenceView(taskManager: taskManager, task: task)
+                        .interactiveDismissDisabled() // Prevent accidental dismissal
                 }
             }
         }
@@ -74,7 +78,7 @@ struct TaskListView: View {
             Button(action: {
                 showingAddTask = true
             }) {
-                Text("Add Custom Task")
+                Text("Create a Task")
                     .fontWeight(.semibold)
                     .padding()
                     .background(Color.blue)
@@ -86,7 +90,7 @@ struct TaskListView: View {
             Button(action: {
                 showingSelectPredefined = true
             }) {
-                Text("Select from Predefined Tasks")
+                Text("Choose from Existing")
                     .fontWeight(.semibold)
                     .padding()
                     .background(Color.green)
@@ -99,7 +103,7 @@ struct TaskListView: View {
     
     private var taskListContent: some View {
         List {
-            Section(header: Text("Tasks to Complete")) {
+            Section(header: Text("To-Do")) {
                 ForEach(taskManager.tasks.filter { $0.status == .pending }) { task in
                     TaskRowView(task: task)
                         .contentShape(Rectangle())
@@ -122,7 +126,7 @@ struct TaskListView: View {
             }
             
             if !taskManager.tasks.filter({ $0.status != .pending }).isEmpty {
-                Section(header: Text("Completed Tasks")) {
+                Section(header: Text("Completed")) {
                     ForEach(taskManager.tasks.filter { $0.status != .pending }) { task in
                         TaskRowView(task: task)
                             .contentShape(Rectangle())

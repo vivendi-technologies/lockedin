@@ -6,10 +6,29 @@ import SwiftUI
 
 class AppRestrictionManager: ObservableObject {
     @Published var isRestrictionActive = false
-    @Published var selectedApps = FamilyActivitySelection()
+    @Published var selectedApps = FamilyActivitySelection() //{
+//        willSet {
+//            let applications = newValue.applicationTokens
+//            let categories = newValue.categoryTokens
+//            let webCategories = newValue.webDomainTokens
+//        }
+//    }
     @Published var restrictionMode: RestrictionMode = .automatic
+    @Published var isAuthorized = false
     
     private let store = ManagedSettingsStore()
+    private let center = AuthorizationCenter.shared
+    
+    func requestAuthorization() async {
+            do {
+                try await center.requestAuthorization(for: .individual)
+                DispatchQueue.main.async {
+                    self.isAuthorized = self.center.authorizationStatus == .approved
+                }
+            } catch {
+                print("Failed to request authorization: \(error.localizedDescription)")
+            }
+        }
     
     // Restriction modes
     enum RestrictionMode: String, Codable, CaseIterable, Identifiable {
@@ -34,6 +53,7 @@ class AppRestrictionManager: ObservableObject {
     
     // Enable restrictions based on the selected mode
     func enableRestrictions() {
+        guard isAuthorized else { return }
         switch restrictionMode {
         case .automatic:
             applyAutomaticRestrictions()
@@ -47,6 +67,7 @@ class AppRestrictionManager: ObservableObject {
     
     // Disable all restrictions
     func disableRestrictions() {
+        guard isAuthorized else { return }
         store.shield.applications = nil
         store.shield.applicationCategories = nil
         store.shield.webDomains = nil
@@ -65,33 +86,32 @@ class AppRestrictionManager: ObservableObject {
     
     // Apply custom restrictions based on user selection
     private func applyCustomRestrictions() {
+        // For applications
         if !selectedApps.applicationTokens.isEmpty {
-            store.shield.applications = .specific(
-                tokens: selectedApps.applicationTokens,
-                except: []
+            // Shield applications based on the selection
+            store.shield.applications = .init(
+                Set(selectedApps.applicationTokens)
             )
         }
         
-        if !selectedApps.categoryTokens.isEmpty {
-            store.shield.applicationCategories = .specific(
-                selectedApps.categoryTokens,
-                except: []
-            )
-        }
+        // For application categories
+//        if !selectedApps.categoryTokens.isEmpty {
+//            // Shield application categories based on the selection
+//            store.shield.applicationCategories = .init(
+//                blockedCategories: Set(selectedApps.categoryTokens)
+//            )
+//        }
         
+        // For web domains
         if !selectedApps.webDomainTokens.isEmpty {
-            store.shield.webDomains = .specific (
-                tokens: selectedApps.webDomainTokens,
-                except: []
+            // Shield web domains based on the selection
+            store.shield.webDomains = .init(
+                Set(selectedApps.webDomainTokens)
             )
         }
         
-        if !selectedApps.webDomainCategoryTokens.isEmpty {
-            store.shield.webDomainCategories = .specific(
-                selectedApps.webDomainCategoryTokens,
-                except: []
-            )
-        }
+        // For web domain categories, just block all
+        //store.shield.webDomainCategories = Optional.none
     }
     
     // Check if all tasks are completed and unlock if needed
@@ -127,17 +147,6 @@ class AppRestrictionManager: ObservableObject {
         // If restrictions should be active, reapply them (in case of app restart)
         if isRestrictionActive {
             enableRestrictions()
-        }
-    }
-    
-    // Request authorization to access Screen Time API
-    func requestAuthorization() async -> Bool {
-        do {
-            try await AuthorizationCenter.shared.requestAuthorization(for: .individual)
-            return true
-        } catch {
-            print("Failed to request authorization: \(error.localizedDescription)")
-            return false
         }
     }
 }

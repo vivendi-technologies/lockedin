@@ -4,5 +4,7 @@
 <dict>
 	<key>FamilyControlsPermission</key>
 	<string>This app requires permission to restrict access to apps and websites.</string>
+	<key>com.apple.security.application-groups</key>
+	<string>group.com.vivendi.lockedin</string>
 </dict>
 </plist>

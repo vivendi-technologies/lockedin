@@ -15,6 +15,8 @@ struct AppSelectionView: View {
     @Environment(\.presentationMode) var presentationMode
     
     @State private var isShowingActivityPicker = false
+    // Create a temporary selection that we only save when the user confirms
+    @State private var tempSelection = FamilyActivitySelection()
     
     var body: some View {
         NavigationView {
@@ -49,6 +51,8 @@ struct AppSelectionView: View {
                 if restrictionManager.restrictionMode == .custom {
                     Section(header: Text("Select Apps to Restrict")) {
                         Button(action: {
+                            // Initialize temp selection with current selection
+                            tempSelection = restrictionManager.selectedApps
                             isShowingActivityPicker = true
                         }) {
                             HStack {
@@ -69,6 +73,7 @@ struct AppSelectionView: View {
                 
                 Section {
                     Button(action: {
+                        // Save settings and dismiss
                         if restrictionManager.isRestrictionActive {
                             // Re-apply restrictions with new settings
                             restrictionManager.enableRestrictions()
@@ -77,6 +82,7 @@ struct AppSelectionView: View {
                     }) {
                         Text("Save Settings")
                             .frame(maxWidth: .infinity)
+                            .fontWeight(.medium)
                     }
                     .frame(maxWidth: .infinity, alignment: .center)
                     .foregroundColor(.blue)
@@ -86,10 +92,39 @@ struct AppSelectionView: View {
             .navigationBarItems(trailing: Button("Cancel") {
                 presentationMode.wrappedValue.dismiss()
             })
-            .sheet(isPresented: $isShowingActivityPicker) {
-                FamilyActivityPicker(selection: $restrictionManager.selectedApps)
-                    .ignoresSafeArea()
+            // Use a full screen cover for better control of dismissal
+            .fullScreenCover(isPresented: $isShowingActivityPicker) {
+                AppSelectionPickerView(selection: $tempSelection, onSave: { newSelection in
+                    // Update the real selection when user saves
+                    restrictionManager.selectedApps = newSelection
+                    isShowingActivityPicker = false
+                }, onCancel: {
+                    // Discard changes and dismiss
+                    isShowingActivityPicker = false
+                })
             }
+        }
+    }
+}
+
+// New view to wrap the FamilyActivityPicker with custom navigation
+struct AppSelectionPickerView: View {
+    @Binding var selection: FamilyActivitySelection
+    var onSave: (FamilyActivitySelection) -> Void
+    var onCancel: () -> Void
+    
+    var body: some View {
+        NavigationView {
+            FamilyActivityPicker(selection: $selection)
+                .navigationTitle("Select Apps")
+                .navigationBarItems(
+                    leading: Button("Cancel") {
+                        onCancel()
+                    },
+                    trailing: Button("Save") {
+                        onSave(selection)
+                    }
+                )
         }
     }
 }

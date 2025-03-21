@@ -12,8 +12,12 @@ import SwiftUI
 class TaskManager: ObservableObject {
     @Published var tasks: [Task] = []
     
-    // New properties to add here:
-    @Published var restrictionManager = AppRestrictionManager()
+    // Using the injected reference:
+    var appRestrictionManager: AppRestrictionManager?
+    
+    // Remove this line since we're using the injected version instead:
+    // @Published var restrictionManager = AppRestrictionManager()
+    
     private var taskCompletionCheckTimer: Timer?
     
     // Predefined tasks that the app will offer
@@ -30,10 +34,15 @@ class TaskManager: ObservableObject {
     
     init() {
         loadTasks()
+        setupTaskCompletionTimer()
+    }
+    
+    private func setupTaskCompletionTimer() {
         taskCompletionCheckTimer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { [weak self] _ in
-                guard let self = self else { return }
-                self.restrictionManager.checkTaskCompletion(tasks: self.tasks)
-            }
+            guard let self = self else { return }
+            // Use the injected appRestrictionManager instead
+            self.appRestrictionManager?.checkTaskCompletion(tasks: self.tasks)
+        }
     }
     
     // MARK: - Task Management
@@ -63,6 +72,9 @@ class TaskManager: ObservableObject {
         if let index = tasks.firstIndex(where: { $0.id == id }) {
             tasks[index].complete(textDescription: textDescription, imageData: imageData)
             saveTasks()
+            
+            // Add nil check for optional appRestrictionManager
+            appRestrictionManager?.enableRestrictions()
         }
     }
     

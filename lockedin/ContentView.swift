@@ -5,24 +5,28 @@
 //  Created by Kevin Le on 3/17/25.
 //
 
-// Add this to ContentView.swift
 import SwiftUI
 import FamilyControls
 
 struct ContentView: View {
     @StateObject private var taskManager = TaskManager()
+    @StateObject private var appRestrictionManager = AppRestrictionManager()
     @State private var showingAppSettings = false
     @State private var authorizationRequested = false
     
     var body: some View {
         ZStack {
             TaskListView(taskManager: taskManager)
+                .onAppear {
+                    // Inject the manager into taskManager
+                    taskManager.appRestrictionManager = appRestrictionManager
+                }
                 .overlay(
                     VStack {
                         Spacer()
                         
-                        // App restriction status banner
-                        if taskManager.restrictionManager.isRestrictionActive {
+                        // App restriction status banner - use the shared instance
+                        if appRestrictionManager.isRestrictionActive {
                             HStack {
                                 Image(systemName: "lock.fill")
                                     .foregroundColor(.white)
@@ -62,8 +66,11 @@ struct ContentView: View {
             requestAuthorizationIfNeeded()
         }
         .sheet(isPresented: $showingAppSettings) {
-            AppSelectionView(restrictionManager: taskManager.restrictionManager)
+            // Use the shared restriction manager
+            AppSelectionView(restrictionManager: appRestrictionManager)
         }
+        // Make the restriction manager available to child views
+        .environmentObject(appRestrictionManager)
     }
     
     // Request Screen Time authorization when the app first launches
@@ -71,19 +78,24 @@ struct ContentView: View {
         guard !authorizationRequested else { return }
         
         _Concurrency.Task {
-            let authorized = await taskManager.restrictionManager.requestAuthorization()
-            if authorized {
+            // Mark as requested to prevent multiple attempts
+            authorizationRequested = true
+            
+            // Request authorization (doesn't return a boolean)
+            await appRestrictionManager.requestAuthorization()
+            
+            // Check authorization status after the request
+            if appRestrictionManager.isAuthorized {
                 // Apply default restrictions if it's the first launch
                 if taskManager.tasks.isEmpty {
                     // Add some default tasks for first-time users
                     taskManager.addTask(.predefined(title: "Morning Meditation", description: "Complete a 10-minute meditation session"))
                     taskManager.addTask(.predefined(title: "Read", description: "Read at least 10 pages of a book"))
                     
-                    // Enable restrictions
-                    taskManager.restrictionManager.enableRestrictions()
+                    // Enable restrictions using the shared instance
+                    appRestrictionManager.enableRestrictions()
                 }
             }
-            authorizationRequested = true
         }
     }
 }

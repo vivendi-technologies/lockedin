@@ -429,6 +429,7 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = lockedin/lockedin.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_ASSET_PATHS = "\"lockedin/Preview Content\"";
@@ -436,7 +437,8 @@
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = lockedin/Info.plist;
-				INFOPLIST_KEY_LSApplicationCategoryType = "";
+				INFOPLIST_KEY_CFBundleDisplayName = Bloomer;
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.productivity";
 				INFOPLIST_KEY_NSCameraUsageDescription = "LockedIn needs camera access to take photos as evidence of completed tasks.";
 				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "LockedIn needs access to your photos so you can submit evidence of completed tasks.";
 				INFOPLIST_KEY_NSUserTrackingUsageDescription = "LockedIn requires access to Screen Time data to restrict distracting apps until your tasks are completed.";
@@ -464,6 +466,7 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = lockedin/lockedin.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_ASSET_PATHS = "\"lockedin/Preview Content\"";
@@ -471,7 +474,8 @@
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = lockedin/Info.plist;
-				INFOPLIST_KEY_LSApplicationCategoryType = "";
+				INFOPLIST_KEY_CFBundleDisplayName = Bloomer;
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.productivity";
 				INFOPLIST_KEY_NSCameraUsageDescription = "LockedIn needs camera access to take photos as evidence of completed tasks.";
 				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "LockedIn needs access to your photos so you can submit evidence of completed tasks.";
 				INFOPLIST_KEY_NSUserTrackingUsageDescription = "LockedIn requires access to Screen Time data to restrict distracting apps until your tasks are completed.";
