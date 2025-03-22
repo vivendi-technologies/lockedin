@@ -8,20 +8,20 @@ import Foundation
 import SwiftUI
 
 // Enum to represent the type of task
-enum TaskType: String, Codable {
+enum TaskType: String, Codable, Hashable {
     case predefined
     case custom
 }
 
 // Enum to represent the completion status of a task
-enum TaskStatus: String, Codable {
+enum TaskStatus: String, Codable, Hashable {
     case pending
     case completed
     case verified
 }
 
 // Struct to represent evidence for task completion
-struct TaskEvidence: Identifiable, Codable {
+struct TaskEvidence: Identifiable, Codable, Hashable {
     var id = UUID()
     var textDescription: String?
     var imageFilename: String?  // Store filename instead of raw image data
@@ -38,10 +38,25 @@ struct TaskEvidence: Identifiable, Codable {
         guard let filename = imageFilename else { return nil }
         return FileUtility.loadImage(filename: filename)
     }
+    
+    // Implement Hashable
+    func hash(into hasher: inout Hasher) {
+        hasher.combine(id)
+        hasher.combine(textDescription)
+        hasher.combine(imageFilename)
+        hasher.combine(dateSubmitted)
+    }
+    
+    static func == (lhs: TaskEvidence, rhs: TaskEvidence) -> Bool {
+        return lhs.id == rhs.id &&
+               lhs.textDescription == rhs.textDescription &&
+               lhs.imageFilename == rhs.imageFilename &&
+               lhs.dateSubmitted == rhs.dateSubmitted
+    }
 }
 
 // Main Task model
-struct Task: Identifiable, Codable {
+struct Task: Identifiable, Codable, Hashable {
     var id = UUID()
     var title: String
     var description: String
@@ -72,5 +87,28 @@ struct Task: Identifiable, Codable {
     // Method to verify task completion (to be used with SLM verification)
     mutating func verify() {
         self.status = .verified
+    }
+    
+    // Implement Hashable
+    func hash(into hasher: inout Hasher) {
+        hasher.combine(id)
+        hasher.combine(title)
+        hasher.combine(description)
+        hasher.combine(type)
+        hasher.combine(status)
+        hasher.combine(evidence)
+        hasher.combine(creationDate)
+        hasher.combine(completionDate)
+    }
+    
+    static func == (lhs: Task, rhs: Task) -> Bool {
+        return lhs.id == rhs.id &&
+               lhs.title == rhs.title &&
+               lhs.description == rhs.description &&
+               lhs.type == rhs.type &&
+               lhs.status == rhs.status &&
+               lhs.evidence == rhs.evidence &&
+               lhs.creationDate == rhs.creationDate &&
+               lhs.completionDate == rhs.completionDate
     }
 }

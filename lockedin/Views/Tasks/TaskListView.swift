@@ -5,18 +5,16 @@
 //  Created by Kevin Le on 3/17/25.
 //
 
-
 import SwiftUI
 
 struct TaskListView: View {
     @ObservedObject var taskManager: TaskManager
     @State private var showingAddTask = false
     @State private var showingSelectPredefined = false
-    @State private var showingTaskEvidence = false
-    @State private var selectedTask: Task?
+    @State private var selectedTask: Task? = nil
     
     var body: some View {
-        NavigationView {
+        NavigationStack {
             VStack {
                 if taskManager.tasks.isEmpty {
                     emptyStateView
@@ -24,7 +22,7 @@ struct TaskListView: View {
                     taskListContent
                 }
             }
-            .navigationTitle("Task Checklist")
+            .navigationTitle("Bloomer")
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Menu {
@@ -40,22 +38,14 @@ struct TaskListView: View {
                     }
                 }
             }
+            .navigationDestination(for: Task.self) { task in
+                TaskEvidenceView(taskManager: taskManager, task: task)
+            }
             .sheet(isPresented: $showingAddTask) {
                 AddTaskView(taskManager: taskManager)
             }
             .sheet(isPresented: $showingSelectPredefined) {
                 PredefinedTasksView(taskManager: taskManager)
-            }
-            .sheet(isPresented: $showingTaskEvidence, onDismiss: {
-                // Clear selection after a short delay to avoid potential state conflicts
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
-                    selectedTask = nil
-                }
-            }) {
-                if let task = selectedTask {
-                    TaskEvidenceView(taskManager: taskManager, task: task)
-                        .interactiveDismissDisabled() // Prevent accidental dismissal
-                }
             }
         }
     }
@@ -105,12 +95,9 @@ struct TaskListView: View {
         List {
             Section(header: Text("To-Do")) {
                 ForEach(taskManager.tasks.filter { $0.status == .pending }) { task in
-                    TaskRowView(task: task)
-                        .contentShape(Rectangle())
-                        .onTapGesture {
-                            selectedTask = task
-                            showingTaskEvidence = true
-                        }
+                    NavigationLink(value: task) {
+                        TaskRowView(task: task)
+                    }
                 }
                 .onDelete { indexSet in
                     let pendingTasks = taskManager.tasks.filter { $0.status == .pending }
@@ -128,12 +115,9 @@ struct TaskListView: View {
             if !taskManager.tasks.filter({ $0.status != .pending }).isEmpty {
                 Section(header: Text("Completed")) {
                     ForEach(taskManager.tasks.filter { $0.status != .pending }) { task in
-                        TaskRowView(task: task)
-                            .contentShape(Rectangle())
-                            .onTapGesture {
-                                selectedTask = task
-                                showingTaskEvidence = true
-                            }
+                        NavigationLink(value: task) {
+                            TaskRowView(task: task)
+                        }
                     }
                 }
             }

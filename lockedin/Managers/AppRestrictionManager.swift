@@ -15,6 +15,8 @@ class AppRestrictionManager: ObservableObject {
 //    }
     @Published var restrictionMode: RestrictionMode = .automatic
     @Published var isAuthorized = false
+    //@Published var lastCompletedTask: Task?
+    //@Published var lastCompletedTaskId: UUID? = nil
     
     private let store = ManagedSettingsStore()
     private let center = AuthorizationCenter.shared
@@ -114,13 +116,23 @@ class AppRestrictionManager: ObservableObject {
         //store.shield.webDomainCategories = Optional.none
     }
     
-    // Check if all tasks are completed and unlock if needed
+    // In AppRestrictionManager.swift
     func checkTaskCompletion(tasks: [Task]) {
         let allTasksCompleted = !tasks.isEmpty && tasks.allSatisfy { $0.status != .pending }
+        let pendingTasks = tasks.filter { $0.status == .pending }
+        
+        // Debug print to verify it's being called
+        print("Checking task completion - all completed: \(allTasksCompleted), pending: \(pendingTasks.count)")
         
         if allTasksCompleted && isRestrictionActive {
+            // Track completion and print for debugging
+            if let justCompletedTask = tasks.last(where: { $0.status != .pending }) {
+                print("Setting last completed task: \(justCompletedTask.title)")
+                //self.lastCompletedTask = justCompletedTask
+            }
             disableRestrictions()
-        } else if !allTasksCompleted && !isRestrictionActive && !tasks.isEmpty {
+        } else if !pendingTasks.isEmpty && !isRestrictionActive {
+            //self.lastCompletedTask = nil
             enableRestrictions()
         }
     }

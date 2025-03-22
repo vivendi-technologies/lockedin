@@ -1,10 +1,3 @@
-//
-//  ContentView.swift
-//  lockedin
-//
-//  Created by Kevin Le on 3/17/25.
-//
-
 import SwiftUI
 import FamilyControls
 
@@ -13,9 +6,16 @@ struct ContentView: View {
     @StateObject private var appRestrictionManager = AppRestrictionManager()
     @State private var showingAppSettings = false
     @State private var authorizationRequested = false
+    /*
+    @State private var showingTaskCompletedBanner = false
+    @State private var showingAppUnlockBanner = false
+    @State private var showingCongratulations = false
+    @State private var completedTask: Task? = nil
+    */
     
     var body: some View {
         ZStack {
+            // Main app content
             TaskListView(taskManager: taskManager)
                 .onAppear {
                     // Inject the manager into taskManager
@@ -24,6 +24,18 @@ struct ContentView: View {
                 .overlay(
                     VStack {
                         Spacer()
+                        
+                        // Show task completed banner
+//                        if showingTaskCompletedBanner, let lastCompletedTask = appRestrictionManager.lastCompletedTask {
+//                            TaskCompletedBanner(task: lastCompletedTask) {
+//                                withAnimation {
+//                                    showingTaskCompletedBanner = false
+//                                }
+//                                // Reset the last completed task
+//                                appRestrictionManager.lastCompletedTask = nil
+//                            }
+//                            .transition(.move(edge: .bottom))
+//                        }
                         
                         // App restriction status banner - use the shared instance
                         if appRestrictionManager.isRestrictionActive {
@@ -65,16 +77,39 @@ struct ContentView: View {
         .onAppear {
             requestAuthorizationIfNeeded()
         }
+        // Monitor for lastCompletedTask changes
+//        .onReceive(appRestrictionManager.$lastCompletedTask) { task in
+//            if let task = task {
+//                print("Detected task completion: \(task.title)")
+//                self.completedTask = task
+//                self.showingCongratulations = true
+//                
+//                // Auto-hide after delay
+//                DispatchQueue.main.asyncAfter(deadline: .now() + 5) {
+//                    self.showingCongratulations = false
+//                    appRestrictionManager.lastCompletedTask = nil
+//                }
+//            }
+//        }
         .sheet(isPresented: $showingAppSettings) {
             // Use the shared restriction manager
             AppSelectionView(restrictionManager: appRestrictionManager)
         }
         // Make the restriction manager available to child views
         .environmentObject(appRestrictionManager)
+        
+        // Show app unlock banner when all tasks are completed
+//        .overlay(
+//            ZStack {
+//                if showingAppUnlockBanner {
+//                    AppUnlockBanner(isVisible: $showingAppUnlockBanner)
+//                }
+//            }
+//        )
     }
     
     // Request Screen Time authorization when the app first launches
-    private func requestAuthorizationIfNeeded() {
+    func requestAuthorizationIfNeeded() {
         guard !authorizationRequested else { return }
         
         _Concurrency.Task {
@@ -99,3 +134,51 @@ struct ContentView: View {
         }
     }
 }
+
+// Banner that shows when a task is completed
+/*
+struct TaskCompletedBanner: View {
+    let task: Task
+    let onDismiss: () -> Void
+    
+    var body: some View {
+        HStack {
+            Image(systemName: "checkmark.circle.fill")
+                .foregroundColor(.white)
+                .font(.title2)
+            
+            VStack(alignment: .leading, spacing: 2) {
+                Text("Task Completed!")
+                    .font(.headline)
+                    .foregroundColor(.white)
+                
+                Text(task.title)
+                    .font(.subheadline)
+                    .foregroundColor(.white.opacity(0.9))
+            }
+            
+            Spacer()
+            
+            Button(action: {
+                onDismiss()
+            }) {
+                Image(systemName: "xmark")
+                    .foregroundColor(.white)
+                    .padding(5)
+            }
+        }
+        .padding()
+        .background(
+            LinearGradient(
+                gradient: Gradient(colors: [Color.green, Color.green.opacity(0.8)]),
+                startPoint: .leading,
+                endPoint: .trailing
+            )
+        )
+        .cornerRadius(10)
+        .shadow(radius: 3)
+        .padding(.horizontal)
+        .padding(.bottom, 8)
+    }
+}
+*/

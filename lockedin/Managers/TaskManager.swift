@@ -15,9 +15,6 @@ class TaskManager: ObservableObject {
     // Using the injected reference:
     var appRestrictionManager: AppRestrictionManager?
     
-    // Remove this line since we're using the injected version instead:
-    // @Published var restrictionManager = AppRestrictionManager()
-    
     private var taskCompletionCheckTimer: Timer?
     
     // Predefined tasks that the app will offer
@@ -54,98 +51,133 @@ class TaskManager: ObservableObject {
     func addTask(_ task: Task) {
         tasks.append(task)
         saveTasks()
+        
+        // Check if restrictions should be enabled when adding a new task
+        if !tasks.isEmpty && tasks.contains(where: { $0.status == .pending }) {
+            appRestrictionManager?.enableRestrictions()
+        }
     }
     
     func removeTask(at indexSet: IndexSet) {
         tasks.remove(atOffsets: indexSet)
         saveTasks()
+        
+        // Check task completion status after removing task(s)
+        checkAllTasksCompletion()
     }
     
     func updateTask(_ task: Task) {
         if let index = tasks.firstIndex(where: { $0.id == task.id }) {
             tasks[index] = task
             saveTasks()
+            
+            // Check task completion status after updating a task
+            checkAllTasksCompletion()
         }
     }
     
+    // Check if all tasks are completed
+    private func checkAllTasksCompletion() {
+        let pendingTasks = tasks.filter { $0.status == .pending }
+        
+        if tasks.isEmpty || pendingTasks.isEmpty {
+            // All tasks completed or no tasks - disable restrictions
+            appRestrictionManager?.disableRestrictions()
+        } else {
+            // Some tasks are still pending - ensure restrictions are active
+            appRestrictionManager?.enableRestrictions()
+        }
+    }
+    
+    // In TaskManager.swift
     func completeTask(id: UUID, textDescription: String? = nil, imageData: UIImage? = nil) {
-            if let index = tasks.firstIndex(where: { $0.id == id }) {
-                // Handle image storage
-                var imageFilename: String? = nil
-                if let image = imageData {
-                    imageFilename = FileUtility.saveImage(image, id: UUID())
-                }
-                
-                // Create evidence with proper file storage
-                let evidence = TaskEvidence(textDescription: textDescription, imageFilename: imageFilename)
-                
-                // Update task
-                tasks[index].evidence = evidence
-                tasks[index].status = .completed
-                tasks[index].completionDate = Date()
-                
-                saveTasks()
-                // Add nil check for optional appRestrictionManager
-                appRestrictionManager?.enableRestrictions()
+        if let index = tasks.firstIndex(where: { $0.id == id }) {
+            // Handle image storage
+            var imageFilename: String? = nil
+            if let image = imageData {
+                imageFilename = FileUtility.saveImage(image, id: UUID())
+            }
+            
+            // Create evidence with proper file storage
+            let evidence = TaskEvidence(textDescription: textDescription, imageFilename: imageFilename)
+            
+            // Update task
+            tasks[index].evidence = evidence
+            tasks[index].status = .completed
+            tasks[index].completionDate = Date()
+            
+            // Save changes
+            saveTasks()
+            
+            // Set the completed task in the app restriction manager
+            print("Task completed: \(tasks[index].title)")
+            //appRestrictionManager?.lastCompletedTask = tasks[index]
+            
+            // Check if all tasks are completed
+            let pendingTasks = tasks.filter { $0.status == .pending }
+            if pendingTasks.isEmpty {
+                // All tasks completed - disable restrictions
+                appRestrictionManager?.disableRestrictions()
             }
         }
+    }
     
     func updateTaskEvidence(id: UUID, textDescription: String? = nil, imageData: UIImage? = nil) {
-            if let index = tasks.firstIndex(where: { $0.id == id }) {
-                // Remember original data
-                let originalCompletionDate = tasks[index].completionDate
-                let originalStatus = tasks[index].status
-                let oldImageFilename = tasks[index].evidence?.imageFilename
+        if let index = tasks.firstIndex(where: { $0.id == id }) {
+            // Remember original data
+            let originalCompletionDate = tasks[index].completionDate
+            let originalStatus = tasks[index].status
+            let oldImageFilename = tasks[index].evidence?.imageFilename
+            
+            // Handle image storage - delete old image if replacing it
+            var imageFilename = oldImageFilename
+            if let image = imageData {
+                // Save new image
+                imageFilename = FileUtility.saveImage(image, id: UUID())
                 
-                // Handle image storage - delete old image if replacing it
-                var imageFilename = oldImageFilename
-                if let image = imageData {
-                    // Save new image
-                    imageFilename = FileUtility.saveImage(image, id: UUID())
-                    
-                    // Delete old image if it exists and we're replacing it
-                    if let oldFilename = oldImageFilename {
-                        FileUtility.deleteImage(filename: oldFilename)
-                    }
-                } else if imageData == nil && oldImageFilename != nil {
-                    // If we're clearing the image
-                    if let oldFilename = oldImageFilename {
-                        FileUtility.deleteImage(filename: oldFilename)
-                    }
-                    imageFilename = nil
+                // Delete old image if it exists and we're replacing it
+                if let oldFilename = oldImageFilename {
+                    FileUtility.deleteImage(filename: oldFilename)
                 }
-                
-                // Update the evidence
-                tasks[index].evidence = TaskEvidence(textDescription: textDescription, imageFilename: imageFilename)
-                
-                // Restore original completion date and status
-                tasks[index].completionDate = originalCompletionDate
-                tasks[index].status = originalStatus
-                
-                saveTasks()
+            } else if imageData == nil && oldImageFilename != nil {
+                // If we're clearing the image
+                if let oldFilename = oldImageFilename {
+                    FileUtility.deleteImage(filename: oldFilename)
+                }
+                imageFilename = nil
             }
+            
+            // Update the evidence
+            tasks[index].evidence = TaskEvidence(textDescription: textDescription, imageFilename: imageFilename)
+            
+            // Restore original completion date and status
+            tasks[index].completionDate = originalCompletionDate
+            tasks[index].status = originalStatus
+            
+            saveTasks()
         }
+    }
     
     func cleanupOrphanedImages() {
-            // Get list of all image filenames in use
-            let usedFilenames = tasks.compactMap { $0.evidence?.imageFilename }
-            
-            // Get all image files in documents directory
-            let documentsURL = FileUtility.getDocumentsDirectory()
-            guard let fileURLs = try? FileManager.default.contentsOfDirectory(
-                at: documentsURL,
-                includingPropertiesForKeys: nil,
-                options: .skipsHiddenFiles
-            ) else { return }
-            
-            // Delete any image that's not referenced by a task
-            for fileURL in fileURLs {
-                let filename = fileURL.lastPathComponent
-                if filename.hasSuffix(".jpg") && !usedFilenames.contains(filename) {
-                    try? FileManager.default.removeItem(at: fileURL)
-                }
+        // Get list of all image filenames in use
+        let usedFilenames = tasks.compactMap { $0.evidence?.imageFilename }
+        
+        // Get all image files in documents directory
+        let documentsURL = FileUtility.getDocumentsDirectory()
+        guard let fileURLs = try? FileManager.default.contentsOfDirectory(
+            at: documentsURL,
+            includingPropertiesForKeys: nil,
+            options: .skipsHiddenFiles
+        ) else { return }
+        
+        // Delete any image that's not referenced by a task
+        for fileURL in fileURLs {
+            let filename = fileURL.lastPathComponent
+            if filename.hasSuffix(".jpg") && !usedFilenames.contains(filename) {
+                try? FileManager.default.removeItem(at: fileURL)
             }
         }
+    }
     
     // MARK: - Persistence
     
@@ -168,19 +200,19 @@ class TaskManager: ObservableObject {
     }
     
     func resetAllData() {
-            // Delete all image files
-            for task in tasks {
-                if let imageFilename = task.evidence?.imageFilename {
-                    FileUtility.deleteImage(filename: imageFilename)
-                }
+        // Delete all image files
+        for task in tasks {
+            if let imageFilename = task.evidence?.imageFilename {
+                FileUtility.deleteImage(filename: imageFilename)
             }
-            
-            // Clear tasks array
-            tasks = []
-            
-            // Save empty tasks array
-            saveTasks()
         }
+        
+        // Clear tasks array
+        tasks = []
+        
+        // Save empty tasks array
+        saveTasks()
+    }
     
     deinit {
         taskCompletionCheckTimer?.invalidate()
