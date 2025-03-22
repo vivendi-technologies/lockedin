@@ -35,12 +35,33 @@ struct TaskListView: View {
     @State private var selectedTask: Task? = nil
     @State private var errorOccurred = false
     @State private var errorMessage = ""
+    // Add state for showing the banner
+//    @State private var showingCompletionBanner = false
+//    @State private var completedTaskTitle = ""
     
     // Keep track of when we're performing deletion operations
     @State private var isPerformingDeletion = false
     
     var body: some View {
         NavigationStack {
+//            ZStack(alignment: .top) {
+//                VStack {
+//                    if taskManager.tasks.isEmpty {
+//                        emptyStateView
+//                    } else {
+//                        safeTaskListContent
+//                    }
+//                }
+//                
+//                // Add the completion banner
+//                if showingCompletionBanner {
+//                    TaskCompletionBanner(isVisible: $showingCompletionBanner, taskTitle: completedTaskTitle)
+//                        .transition(.move(edge: .bottom).combined(with: .opacity))
+//                        .zIndex(1) // Ensure it's above all content
+//                        .padding(.bottom, 8)
+//                }
+//            }
+            // Replace the ZStack with:
             VStack {
                 if taskManager.tasks.isEmpty {
                     emptyStateView
@@ -48,7 +69,7 @@ struct TaskListView: View {
                     safeTaskListContent
                 }
             }
-            .navigationTitle("Bloomer")
+            .navigationTitle("Today's Tasks")
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Menu {
@@ -80,6 +101,17 @@ struct TaskListView: View {
                     dismissButton: .default(Text("OK"))
                 )
             }
+            // Listen for task completion notifications
+//            .onReceive(taskManager.completionNotifier.$shouldShow) { shouldShow in
+//                if shouldShow, let completedTask = taskManager.completionNotifier.lastCompletedTask {
+//                    completedTaskTitle = completedTask.title
+//                    withAnimation {
+//                        showingCompletionBanner = true
+//                    }
+//                    // Reset the notifier
+//                    taskManager.completionNotifier.reset()
+//                }
+//            }
         }
     }
     

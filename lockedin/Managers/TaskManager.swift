@@ -11,6 +11,7 @@ import SwiftUI
 // Class to manage the collection of tasks
 class TaskManager: ObservableObject {
     @Published var tasks: [Task] = []
+    @Published var completionNotifier = TaskCompletionNotification()
     
     // Using the injected reference:
     var appRestrictionManager: AppRestrictionManager?
@@ -95,7 +96,7 @@ class TaskManager: ObservableObject {
         }
     }
     
-    // In TaskManager.swift
+    // In TaskManager.swift, let's modify the completeTask function:
     func completeTask(id: UUID, textDescription: String? = nil, imageData: UIImage? = nil) {
         DispatchQueue.main.async {
             if let index = self.tasks.firstIndex(where: { $0.id == id }) {
@@ -116,7 +117,10 @@ class TaskManager: ObservableObject {
                 // Save changes
                 self.saveTasks()
                 
-                // Set the completed task in the app restriction manager
+                // Trigger the completion notification
+                self.completionNotifier.notifyCompleted(self.tasks[index])
+                
+                // IMPROVED: Log completion event
                 print("Task completed: \(self.tasks[index].title)")
                 
                 // Check if all tasks are completed
@@ -297,5 +301,20 @@ class TaskManager: ObservableObject {
     
     deinit {
         taskCompletionCheckTimer?.invalidate()
+    }
+}
+
+// Add publisher for task completion
+class TaskCompletionNotification: ObservableObject {
+    @Published var lastCompletedTask: Task?
+    @Published var shouldShow: Bool = false
+    
+    func notifyCompleted(_ task: Task) {
+        lastCompletedTask = task
+        shouldShow = true
+    }
+    
+    func reset() {
+        shouldShow = false
     }
 }

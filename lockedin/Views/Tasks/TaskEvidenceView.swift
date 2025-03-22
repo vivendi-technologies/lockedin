@@ -225,5 +225,8 @@ struct TaskEvidenceView: View {
             // Complete the task with the new evidence
             taskManager.completeTask(id: task.id, textDescription: textInput, imageData: imageEvidence)
         }
+        
+        // Always dismiss this view
+        presentationMode.wrappedValue.dismiss()
     }
 }
