@@ -2,110 +2,123 @@ import SwiftUI
 import FamilyControls
 
 struct ContentView: View {
-    @StateObject private var taskManager = TaskManager()
-    @StateObject private var appRestrictionManager = AppRestrictionManager()
+    @EnvironmentObject var taskManager: TaskManager
+    @EnvironmentObject var appRestrictionManager: AppRestrictionManager
+    @EnvironmentObject var dailyResetManager: DailyResetManager
+    
     @State private var showingAppSettings = false
     @State private var authorizationRequested = false
-    /*
-    @State private var showingTaskCompletedBanner = false
-    @State private var showingAppUnlockBanner = false
-    @State private var showingCongratulations = false
-    @State private var completedTask: Task? = nil
-    */
+    @State private var showingResetBanner = false
+    @State private var showingDebugView = false
     
     var body: some View {
-        ZStack {
-            // Main app content
-            TaskListView(taskManager: taskManager)
-                .onAppear {
-                    // Inject the manager into taskManager
-                    taskManager.appRestrictionManager = appRestrictionManager
-                }
-                .overlay(
-                    VStack {
+        NavigationStack {
+            VStack(spacing: 0) {
+                // App restriction banner now appears below the navigation title
+                if appRestrictionManager.isRestrictionActive {
+                    HStack {
+                        Image(systemName: "lock.fill")
+                            .foregroundColor(.white)
+                        
+                        Text("Apps restricted until tasks are completed")
+                            .font(.subheadline)
+                            .foregroundColor(.white)
+                        
                         Spacer()
                         
-                        // Show task completed banner
-//                        if showingTaskCompletedBanner, let lastCompletedTask = appRestrictionManager.lastCompletedTask {
-//                            TaskCompletedBanner(task: lastCompletedTask) {
-//                                withAnimation {
-//                                    showingTaskCompletedBanner = false
-//                                }
-//                                // Reset the last completed task
-//                                appRestrictionManager.lastCompletedTask = nil
-//                            }
-//                            .transition(.move(edge: .bottom))
-//                        }
-                        
-                        // App restriction status banner - use the shared instance
-                        if appRestrictionManager.isRestrictionActive {
-                            HStack {
-                                Image(systemName: "lock.fill")
-                                    .foregroundColor(.white)
-                                
-                                Text("Apps restricted until tasks are completed")
-                                    .font(.subheadline)
-                                    .foregroundColor(.white)
-                                
-                                Spacer()
-                                
-                                Button(action: {
-                                    showingAppSettings = true
-                                }) {
-                                    Image(systemName: "gear")
-                                        .foregroundColor(.white)
-                                }
-                            }
-                            .padding()
-                            .background(Color.blue)
-                            .cornerRadius(10)
-                            .padding(.horizontal)
-                            .shadow(radius: 2)
-                        }
-                    }
-                )
-                .toolbar {
-                    ToolbarItem(placement: .navigationBarLeading) {
                         Button(action: {
                             showingAppSettings = true
                         }) {
-                            Label("Settings", systemImage: "gear")
+                            Image(systemName: "gear")
+                                .foregroundColor(.white)
                         }
                     }
+                    .padding()
+                    .background(Color.blue)
+                    .cornerRadius(10)
+                    .padding(.horizontal)
+                    .padding(.top, 4)
+                    .shadow(radius: 2)
                 }
+                
+                // Main task list view
+                TaskListView(taskManager: taskManager)
+                    .onAppear {
+                        // Inject the manager into taskManager
+                        taskManager.appRestrictionManager = appRestrictionManager
+                    }
+            }
+            .navigationTitle("Bloomer")
+            .toolbar {
+                ToolbarItem(placement: .navigationBarLeading) {
+                    Menu {
+                        Button(action: {
+                            showingAppSettings = true
+                        }) {
+                            Label("App Restrictions", systemImage: "lock.shield")
+                        }
+                        
+                        NavigationLink(destination:
+                            DailyResetSettingsView(dailyResetManager: dailyResetManager)
+                        ) {
+                            Label("Daily Reset", systemImage: "clock.arrow.circlepath")
+                        }
+                    } label: {
+                        Label("Settings", systemImage: "gear")
+                    }
+                }
+            }
+            // Overlay for task reset banner only - no longer includes the restriction banner
+            .overlay(
+                VStack {
+                    if showingResetBanner {
+                        TaskResetBanner(isVisible: $showingResetBanner)
+                    }
+                    
+                    Spacer()
+                }
+            )
         }
+        // Debug button overlay
+        .overlay(
+            VStack {
+                Spacer()
+                
+                HStack {
+                    Spacer()
+                    
+                    Button(action: {
+                        showingDebugView = true
+                    }) {
+                        Text("Debug")
+                            .font(.caption)
+                            .padding(8)
+                            .background(Color.gray.opacity(0.2))
+                            .cornerRadius(8)
+                    }
+                    .padding()
+                    .opacity(0.7)
+                }
+            }
+        )
         .onAppear {
             requestAuthorizationIfNeeded()
         }
-        // Monitor for lastCompletedTask changes
-//        .onReceive(appRestrictionManager.$lastCompletedTask) { task in
-//            if let task = task {
-//                print("Detected task completion: \(task.title)")
-//                self.completedTask = task
-//                self.showingCongratulations = true
-//                
-//                // Auto-hide after delay
-//                DispatchQueue.main.asyncAfter(deadline: .now() + 5) {
-//                    self.showingCongratulations = false
-//                    appRestrictionManager.lastCompletedTask = nil
-//                }
-//            }
-//        }
+        // Monitor for daily resets
+        .onReceive(dailyResetManager.$didResetToday) { didReset in
+            if didReset {
+                withAnimation {
+                    showingResetBanner = true
+                }
+            }
+        }
         .sheet(isPresented: $showingAppSettings) {
             // Use the shared restriction manager
             AppSelectionView(restrictionManager: appRestrictionManager)
         }
-        // Make the restriction manager available to child views
-        .environmentObject(appRestrictionManager)
-        
-        // Show app unlock banner when all tasks are completed
-//        .overlay(
-//            ZStack {
-//                if showingAppUnlockBanner {
-//                    AppUnlockBanner(isVisible: $showingAppUnlockBanner)
-//                }
-//            }
-//        )
+        .sheet(isPresented: $showingDebugView) {
+            DebugViewController(dailyResetManager: dailyResetManager, taskManager: taskManager)
+        }
     }
     
     // Request Screen Time authorization when the app first launches
@@ -134,51 +147,3 @@ struct ContentView: View {
         }
     }
 }
-
-// Banner that shows when a task is completed
-/*
-struct TaskCompletedBanner: View {
-    let task: Task
-    let onDismiss: () -> Void
-    
-    var body: some View {
-        HStack {
-            Image(systemName: "checkmark.circle.fill")
-                .foregroundColor(.white)
-                .font(.title2)
-            
-            VStack(alignment: .leading, spacing: 2) {
-                Text("Task Completed!")
-                    .font(.headline)
-                    .foregroundColor(.white)
-                
-                Text(task.title)
-                    .font(.subheadline)
-                    .foregroundColor(.white.opacity(0.9))
-            }
-            
-            Spacer()
-            
-            Button(action: {
-                onDismiss()
-            }) {
-                Image(systemName: "xmark")
-                    .foregroundColor(.white)
-                    .padding(5)
-            }
-        }
-        .padding()
-        .background(
-            LinearGradient(
-                gradient: Gradient(colors: [Color.green, Color.green.opacity(0.8)]),
-                startPoint: .leading,
-                endPoint: .trailing
-            )
-        )
-        .cornerRadius(10)
-        .shadow(radius: 3)
-        .padding(.horizontal)
-        .padding(.bottom, 8)
-    }
-}
-*/

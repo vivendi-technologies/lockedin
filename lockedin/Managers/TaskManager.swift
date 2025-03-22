@@ -49,30 +49,36 @@ class TaskManager: ObservableObject {
     }
     
     func addTask(_ task: Task) {
-        tasks.append(task)
-        saveTasks()
-        
-        // Check if restrictions should be enabled when adding a new task
-        if !tasks.isEmpty && tasks.contains(where: { $0.status == .pending }) {
-            appRestrictionManager?.enableRestrictions()
+        DispatchQueue.main.async {
+            self.tasks.append(task)
+            self.saveTasks()
+            
+            // Check if restrictions should be enabled when adding a new task
+            if !self.tasks.isEmpty && self.tasks.contains(where: { $0.status == .pending }) {
+                self.appRestrictionManager?.enableRestrictions()
+            }
         }
     }
     
     func removeTask(at indexSet: IndexSet) {
-        tasks.remove(atOffsets: indexSet)
-        saveTasks()
-        
-        // Check task completion status after removing task(s)
-        checkAllTasksCompletion()
+        DispatchQueue.main.async {
+            self.tasks.remove(atOffsets: indexSet)
+            self.saveTasks()
+            
+            // Check task completion status after removing task(s)
+            self.checkAllTasksCompletion()
+        }
     }
     
     func updateTask(_ task: Task) {
-        if let index = tasks.firstIndex(where: { $0.id == task.id }) {
-            tasks[index] = task
-            saveTasks()
-            
-            // Check task completion status after updating a task
-            checkAllTasksCompletion()
+        DispatchQueue.main.async {
+            if let index = self.tasks.firstIndex(where: { $0.id == task.id }) {
+                self.tasks[index] = task
+                self.saveTasks()
+                
+                // Check task completion status after updating a task
+                self.checkAllTasksCompletion()
+            }
         }
     }
     
@@ -91,71 +97,144 @@ class TaskManager: ObservableObject {
     
     // In TaskManager.swift
     func completeTask(id: UUID, textDescription: String? = nil, imageData: UIImage? = nil) {
-        if let index = tasks.firstIndex(where: { $0.id == id }) {
-            // Handle image storage
-            var imageFilename: String? = nil
-            if let image = imageData {
-                imageFilename = FileUtility.saveImage(image, id: UUID())
-            }
-            
-            // Create evidence with proper file storage
-            let evidence = TaskEvidence(textDescription: textDescription, imageFilename: imageFilename)
-            
-            // Update task
-            tasks[index].evidence = evidence
-            tasks[index].status = .completed
-            tasks[index].completionDate = Date()
-            
-            // Save changes
-            saveTasks()
-            
-            // Set the completed task in the app restriction manager
-            print("Task completed: \(tasks[index].title)")
-            //appRestrictionManager?.lastCompletedTask = tasks[index]
-            
-            // Check if all tasks are completed
-            let pendingTasks = tasks.filter { $0.status == .pending }
-            if pendingTasks.isEmpty {
-                // All tasks completed - disable restrictions
-                appRestrictionManager?.disableRestrictions()
+        DispatchQueue.main.async {
+            if let index = self.tasks.firstIndex(where: { $0.id == id }) {
+                // Handle image storage
+                var imageFilename: String? = nil
+                if let image = imageData {
+                    imageFilename = FileUtility.saveImage(image, id: UUID())
+                }
+                
+                // Create evidence with proper file storage
+                let evidence = TaskEvidence(textDescription: textDescription, imageFilename: imageFilename)
+                
+                // Update task
+                self.tasks[index].evidence = evidence
+                self.tasks[index].status = .completed
+                self.tasks[index].completionDate = Date()
+                
+                // Save changes
+                self.saveTasks()
+                
+                // Set the completed task in the app restriction manager
+                print("Task completed: \(self.tasks[index].title)")
+                
+                // Check if all tasks are completed
+                let pendingTasks = self.tasks.filter { $0.status == .pending }
+                if pendingTasks.isEmpty {
+                    // All tasks completed - disable restrictions
+                    self.appRestrictionManager?.disableRestrictions()
+                }
             }
         }
     }
     
     func updateTaskEvidence(id: UUID, textDescription: String? = nil, imageData: UIImage? = nil) {
-        if let index = tasks.firstIndex(where: { $0.id == id }) {
-            // Remember original data
-            let originalCompletionDate = tasks[index].completionDate
-            let originalStatus = tasks[index].status
-            let oldImageFilename = tasks[index].evidence?.imageFilename
-            
-            // Handle image storage - delete old image if replacing it
-            var imageFilename = oldImageFilename
-            if let image = imageData {
-                // Save new image
-                imageFilename = FileUtility.saveImage(image, id: UUID())
+        DispatchQueue.main.async {
+            if let index = self.tasks.firstIndex(where: { $0.id == id }) {
+                // Remember original data
+                let originalCompletionDate = self.tasks[index].completionDate
+                let originalStatus = self.tasks[index].status
+                let oldImageFilename = self.tasks[index].evidence?.imageFilename
                 
-                // Delete old image if it exists and we're replacing it
-                if let oldFilename = oldImageFilename {
-                    FileUtility.deleteImage(filename: oldFilename)
+                // Handle image storage - delete old image if replacing it
+                var imageFilename = oldImageFilename
+                if let image = imageData {
+                    // Save new image
+                    imageFilename = FileUtility.saveImage(image, id: UUID())
+                    
+                    // Delete old image if it exists and we're replacing it
+                    if let oldFilename = oldImageFilename {
+                        FileUtility.deleteImage(filename: oldFilename)
+                    }
+                } else if imageData == nil && oldImageFilename != nil {
+                    // If we're clearing the image
+                    if let oldFilename = oldImageFilename {
+                        FileUtility.deleteImage(filename: oldFilename)
+                    }
+                    imageFilename = nil
                 }
-            } else if imageData == nil && oldImageFilename != nil {
-                // If we're clearing the image
-                if let oldFilename = oldImageFilename {
-                    FileUtility.deleteImage(filename: oldFilename)
-                }
-                imageFilename = nil
+                
+                // Update the evidence
+                self.tasks[index].evidence = TaskEvidence(textDescription: textDescription, imageFilename: imageFilename)
+                
+                // Restore original completion date and status
+                self.tasks[index].completionDate = originalCompletionDate
+                self.tasks[index].status = originalStatus
+                
+                self.saveTasks()
+            }
+        }
+    }
+    
+    // Improved version that preserves task IDs to prevent navigation issues
+    // Returns the count of tasks that were reset
+    func resetAllTasks() -> Int {
+        var resetCount = 0
+        
+        DispatchQueue.main.async {
+            // Safety check - make a copy of the current tasks
+            let currentTasks = self.tasks
+            
+            // If current task list is empty, don't reset
+            if currentTasks.isEmpty {
+                print("No tasks to reset")
+                return
             }
             
-            // Update the evidence
-            tasks[index].evidence = TaskEvidence(textDescription: textDescription, imageFilename: imageFilename)
+            // Reset task status but PRESERVE the same task IDs for navigation
+            var updatedTasks: [Task] = []
             
-            // Restore original completion date and status
-            tasks[index].completionDate = originalCompletionDate
-            tasks[index].status = originalStatus
+            for task in currentTasks {
+                // Skip tasks that are already pending
+                if task.status == .pending {
+                    updatedTasks.append(task)
+                    continue
+                }
+                
+                // Create a reset version of the task with SAME ID but reset status
+                let resetTask = Task(
+                    id: task.id, // Keep the same ID
+                    title: task.title,
+                    description: task.description,
+                    type: task.type,
+                    status: .pending,
+                    evidence: nil,
+                    creationDate: Date()
+                )
+                
+                // This task was reset
+                resetCount += 1
+                
+                // Add the reset task to our updated collection
+                updatedTasks.append(resetTask)
+            }
             
-            saveTasks()
+            // Safely delete task evidence images
+            for task in currentTasks {
+                if let imageFilename = task.evidence?.imageFilename {
+                    FileUtility.deleteImage(filename: imageFilename)
+                }
+            }
+            
+            // Only update tasks if we actually reset something
+            if resetCount > 0 {
+                // Replace the tasks array on the main thread
+                self.tasks = updatedTasks
+                self.saveTasks()
+                
+                // Make sure restrictions are enabled since we now have pending tasks
+                if !self.tasks.isEmpty {
+                    self.appRestrictionManager?.enableRestrictions()
+                }
+                
+                print("\(resetCount) tasks reset to pending status")
+            } else {
+                print("No completed tasks to reset")
+            }
         }
+        
+        return resetCount
     }
     
     func cleanupOrphanedImages() {
@@ -181,7 +260,7 @@ class TaskManager: ObservableObject {
     
     // MARK: - Persistence
     
-    private func saveTasks() {
+    func saveTasks() {
         if let encoded = try? JSONEncoder().encode(tasks) {
             UserDefaults.standard.set(encoded, forKey: "SavedTasks")
         }
@@ -200,18 +279,20 @@ class TaskManager: ObservableObject {
     }
     
     func resetAllData() {
-        // Delete all image files
-        for task in tasks {
-            if let imageFilename = task.evidence?.imageFilename {
-                FileUtility.deleteImage(filename: imageFilename)
+        DispatchQueue.main.async {
+            // Delete all image files
+            for task in self.tasks {
+                if let imageFilename = task.evidence?.imageFilename {
+                    FileUtility.deleteImage(filename: imageFilename)
+                }
             }
+            
+            // Clear tasks array
+            self.tasks = []
+            
+            // Save empty tasks array
+            self.saveTasks()
         }
-        
-        // Clear tasks array
-        tasks = []
-        
-        // Save empty tasks array
-        saveTasks()
     }
     
     deinit {

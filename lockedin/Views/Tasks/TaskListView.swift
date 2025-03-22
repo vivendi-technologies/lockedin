@@ -7,11 +7,37 @@
 
 import SwiftUI
 
+// Add this at the top level of your file, outside the TaskListView struct
+enum TaskError: Error {
+    case invalidIndexSet
+    case taskNotFound
+    case mappingFailed
+}
+
+// Add this extension to provide localized descriptions
+extension TaskError: LocalizedError {
+    var errorDescription: String? {
+        switch self {
+        case .invalidIndexSet:
+            return "No tasks were selected for deletion"
+        case .taskNotFound:
+            return "Could not find the selected task"
+        case .mappingFailed:
+            return "Failed to map tasks to proper indices"
+        }
+    }
+}
+
 struct TaskListView: View {
     @ObservedObject var taskManager: TaskManager
     @State private var showingAddTask = false
     @State private var showingSelectPredefined = false
     @State private var selectedTask: Task? = nil
+    @State private var errorOccurred = false
+    @State private var errorMessage = ""
+    
+    // Keep track of when we're performing deletion operations
+    @State private var isPerformingDeletion = false
     
     var body: some View {
         NavigationStack {
@@ -19,7 +45,7 @@ struct TaskListView: View {
                 if taskManager.tasks.isEmpty {
                     emptyStateView
                 } else {
-                    taskListContent
+                    safeTaskListContent
                 }
             }
             .navigationTitle("Bloomer")
@@ -46,6 +72,13 @@ struct TaskListView: View {
             }
             .sheet(isPresented: $showingSelectPredefined) {
                 PredefinedTasksView(taskManager: taskManager)
+            }
+            .alert(isPresented: $errorOccurred) {
+                Alert(
+                    title: Text("Error"),
+                    message: Text(errorMessage),
+                    dismissButton: .default(Text("OK"))
+                )
             }
         }
     }
@@ -91,24 +124,66 @@ struct TaskListView: View {
         .padding()
     }
     
-    private var taskListContent: some View {
+    // Safe version with improved error handling
+    private var safeTaskListContent: some View {
         List {
             Section(header: Text("To-Do")) {
                 ForEach(taskManager.tasks.filter { $0.status == .pending }) { task in
                     NavigationLink(value: task) {
                         TaskRowView(task: task)
                     }
+                    .onDisappear {
+                        // Only check for unexpected disappearances if we're not in the middle of a deletion
+                        if !isPerformingDeletion {
+                            // If the task is gone and we're not deleting, that's unexpected
+                            if !taskManager.tasks.contains(where: { $0.id == task.id }) {
+                                handleTaskError("Task was removed unexpectedly")
+                            }
+                        }
+                    }
                 }
                 .onDelete { indexSet in
-                    let pendingTasks = taskManager.tasks.filter { $0.status == .pending }
-                    let pendingIndices = indexSet.map { pendingTasks[$0] }
+                    // Set the flag before starting deletion
+                    isPerformingDeletion = true
                     
-                    // Map back to original indices in the full task array
-                    let originalIndices = pendingIndices.compactMap { task in
-                        taskManager.tasks.firstIndex(where: { $0.id == task.id })
+                    do {
+                        let pendingTasks = taskManager.tasks.filter { $0.status == .pending }
+                        
+                        // Throw an error if indexSet is empty
+                        if indexSet.isEmpty {
+                            throw TaskError.invalidIndexSet
+                        }
+                        
+                        // Get tasks to delete and map to original indices
+                        let tasksToDelete = indexSet.compactMap { idx -> Task? in
+                            guard idx < pendingTasks.count else { return nil }
+                            return pendingTasks[idx]
+                        }
+                        
+                        // Throw an error if no tasks were found
+                        if tasksToDelete.isEmpty {
+                            throw TaskError.taskNotFound
+                        }
+                        
+                        let originalIndices = tasksToDelete.compactMap { task in
+                            taskManager.tasks.firstIndex(where: { $0.id == task.id })
+                        }
+                        
+                        // Throw an error if mapping failed
+                        if originalIndices.isEmpty {
+                            throw TaskError.mappingFailed
+                        }
+                        
+                        // Remove tasks
+                        taskManager.removeTask(at: IndexSet(originalIndices))
+                    } catch {
+                        handleTaskError("Error removing task: \(error.localizedDescription)")
                     }
                     
-                    taskManager.removeTask(at: IndexSet(originalIndices))
+                    // Reset the flag after a short delay to allow UI updates to complete
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                        isPerformingDeletion = false
+                    }
                 }
             }
             
@@ -118,9 +193,32 @@ struct TaskListView: View {
                         NavigationLink(value: task) {
                             TaskRowView(task: task)
                         }
+                        .onDisappear {
+                            // Only check for unexpected disappearances if we're not in the middle of a deletion
+                            if !isPerformingDeletion {
+                                // If the task is gone and we're not deleting, that's unexpected
+                                if !taskManager.tasks.contains(where: { $0.id == task.id }) {
+                                    handleTaskError("Task was removed unexpectedly")
+                                }
+                            }
+                        }
                     }
                 }
             }
+        }
+        .refreshable {
+            // Force refresh data to ensure UI is in sync
+            DispatchQueue.main.async {
+                taskManager.saveTasks()
+            }
+        }
+    }
+    
+    // Helper to handle errors
+    private func handleTaskError(_ message: String) {
+        DispatchQueue.main.async {
+            self.errorMessage = message
+            self.errorOccurred = true
         }
     }
 }
