@@ -14,6 +14,7 @@ struct ContentView: View {
     // For unlock banner
     @State private var showingUnlockBanner = false
     @State private var wasRestrictionActive = false
+    @State private var justCompletedAllTasks = false // Track when all tasks just completed
     
     // For task completion banner
     @State private var showingCompletionBanner = false
@@ -57,7 +58,7 @@ struct ContentView: View {
                             taskManager.appRestrictionManager = appRestrictionManager
                         }
                 }
-                .navigationTitle("Bloomer")
+                .navigationTitle("Today's Tasks")
                 .toolbar {
                     ToolbarItem(placement: .navigationBarLeading) {
                         Menu {
@@ -131,17 +132,37 @@ struct ContentView: View {
             .onAppear {
                 requestAuthorizationIfNeeded()
                 wasRestrictionActive = appRestrictionManager.isRestrictionActive
+                
+                // Reset the justCompletedAllTasks flag when tasks change
+                if !taskManager.tasks.isEmpty && taskManager.tasks.contains(where: { $0.status == .pending }) {
+                    justCompletedAllTasks = false
+                    
+                    // ADDED: Ensure restrictions are enabled if pending tasks exist
+                    if !appRestrictionManager.isRestrictionActive {
+                        appRestrictionManager.enableRestrictions()
+                    }
+                }
             }
             // Monitor for app unlock events
             .onReceive(appRestrictionManager.$isRestrictionActive) { isActive in
                 // Only show banner when restrictions change from active to inactive
-                if wasRestrictionActive && !isActive && !taskManager.tasks.isEmpty {
+                if wasRestrictionActive && !isActive && !taskManager.tasks.isEmpty && justCompletedAllTasks {
                     withAnimation {
                         showingUnlockBanner = true
+                        // Reset flag so banner doesn't show again until next completion cycle
+                        justCompletedAllTasks = false
                     }
                 }
                 // Update tracking state
                 wasRestrictionActive = isActive
+            }
+            // Monitor for pending task changes
+            .onReceive(taskManager.$tasks) { tasks in
+                // Reset our "just completed" flag when new tasks are added
+                let pendingTasks = tasks.filter { $0.status == .pending }
+                if !pendingTasks.isEmpty {
+                    justCompletedAllTasks = false
+                }
             }
             // Monitor for daily resets
             .onReceive(dailyResetManager.$didResetToday) { didReset in
@@ -154,10 +175,21 @@ struct ContentView: View {
             // Monitor for task completion
             .onReceive(taskManager.completionNotifier.$shouldShow) { shouldShow in
                 if shouldShow, let completedTask = taskManager.completionNotifier.lastCompletedTask {
-                    completedTaskTitle = completedTask.title
-                    withAnimation {
-                        showingCompletionBanner = true
+                    // Check if this is the last task being completed
+                    let pendingTasks = taskManager.tasks.filter { $0.status == .pending }
+                    
+                    if pendingTasks.isEmpty {
+                        // This was the last task - show unlock banner instead of completion banner
+                        justCompletedAllTasks = true
+                        // Don't show completion banner
+                    } else {
+                        // Not the last task - show the regular completion banner
+                        completedTaskTitle = completedTask.title
+                        withAnimation {
+                            showingCompletionBanner = true
+                        }
                     }
+                    
                     // Reset the notifier
                     taskManager.completionNotifier.reset()
                 }

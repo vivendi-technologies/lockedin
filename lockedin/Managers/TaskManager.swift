@@ -54,8 +54,9 @@ class TaskManager: ObservableObject {
             self.tasks.append(task)
             self.saveTasks()
             
-            // Check if restrictions should be enabled when adding a new task
-            if !self.tasks.isEmpty && self.tasks.contains(where: { $0.status == .pending }) {
+            // FIXED: Now we explicitly check if the task is pending and force enable restrictions
+            if task.status == .pending {
+                print("New pending task added - re-enabling restrictions")
                 self.appRestrictionManager?.enableRestrictions()
             }
         }
@@ -119,9 +120,6 @@ class TaskManager: ObservableObject {
                 
                 // Trigger the completion notification
                 self.completionNotifier.notifyCompleted(self.tasks[index])
-                
-                // IMPROVED: Log completion event
-                print("Task completed: \(self.tasks[index].title)")
                 
                 // Check if all tasks are completed
                 let pendingTasks = self.tasks.filter { $0.status == .pending }

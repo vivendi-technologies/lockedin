@@ -5,26 +5,18 @@
 //  Created by Kevin Le on 3/21/25.
 //
 
-
-//
-//  AppUnlockBanner.swift
-//  lockedin
-//
-//  Created by Kevin Le on 3/21/25.
-//
-
 import SwiftUI
 
 struct AppUnlockBanner: View {
     @Binding var isVisible: Bool
     
     private let unlockMessages = [
-        "All tasks complete! You've unlocked your apps! 🎉",
-        "Great job! Your apps are now available! 🚀",
-        "Mission accomplished! Enjoy your apps! 🏆",
-        "You did it! Apps unlocked! 👏",
-        "Tasks completed! Apps are now accessible! ✨",
-        "Happy scrolling! 📱"
+        "All tasks complete! You've unlocked your apps!",
+        "Great job! Your apps are now available!",
+        "Mission accomplished! Enjoy your apps!",
+        "You did it! Apps unlocked!",
+        "Tasks completed! Apps are now accessible!",
+        "Happy scrolling!"
     ]
     
     var body: some View {
@@ -40,16 +32,14 @@ struct AppUnlockBanner: View {
             
             // Banner content
             VStack(spacing: 20) {
-                // Emoji celebration
-                HStack(spacing: 15) {
-                    ForEach(["🎉", "🔓", "✅", "🥳", "🚀"], id: \.self) { emoji in
-                        Text(emoji)
-                            .font(.system(size: 32))
-                    }
-                }
+                // Success checkmark icon
+                Image(systemName: "checkmark.circle.fill")
+                    .font(.system(size: 50))
+                    .foregroundColor(.green)
+                    .padding(.top)
                 
                 // Unlock message
-                Text(unlockMessages.randomElement() ?? "All tasks complete! You've unlocked your apps! 🎉")
+                Text(unlockMessages.randomElement() ?? "All tasks complete! You've unlocked your apps!")
                     .font(.headline)
                     .multilineTextAlignment(.center)
                     .padding(.horizontal)
@@ -60,7 +50,7 @@ struct AppUnlockBanner: View {
                         isVisible = false
                     }
                 }) {
-                    Text("Awesome!")
+                    Text("Let's go!")
                         .fontWeight(.medium)
                         .padding(.horizontal, 30)
                         .padding(.vertical, 10)
@@ -68,13 +58,13 @@ struct AppUnlockBanner: View {
                         .foregroundColor(.white)
                         .cornerRadius(10)
                 }
-                .padding(.top, 5)
+                .padding(.bottom)
             }
             .padding(25)
             .background(
                 RoundedRectangle(cornerRadius: 20)
-                    .fill(Color.white)
-                    .shadow(color: .black.opacity(0.2), radius: 10, x: 0, y: 4)
+                    .fill(Color(UIColor.systemBackground))
+                    .shadow(color: Color(UIColor.label).opacity(0.2), radius: 10, x: 0, y: 4)
             )
             .transition(.scale.combined(with: .opacity))
         }

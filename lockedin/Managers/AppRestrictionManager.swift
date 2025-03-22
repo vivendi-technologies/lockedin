@@ -118,21 +118,18 @@ class AppRestrictionManager: ObservableObject {
     
     // In AppRestrictionManager.swift
     func checkTaskCompletion(tasks: [Task]) {
-        let allTasksCompleted = !tasks.isEmpty && tasks.allSatisfy { $0.status != .pending }
         let pendingTasks = tasks.filter { $0.status == .pending }
         
         // Debug print to verify it's being called
-        print("Checking task completion - all completed: \(allTasksCompleted), pending: \(pendingTasks.count)")
+        print("Checking task completion - pending: \(pendingTasks.count)")
         
-        if allTasksCompleted && isRestrictionActive {
-            // Track completion and print for debugging
-            if let justCompletedTask = tasks.last(where: { $0.status != .pending }) {
-                print("Setting last completed task: \(justCompletedTask.title)")
-                //self.lastCompletedTask = justCompletedTask
-            }
+        if pendingTasks.isEmpty && isRestrictionActive {
+            // All tasks completed - disable restrictions
+            print("All tasks completed - disabling restrictions")
             disableRestrictions()
         } else if !pendingTasks.isEmpty && !isRestrictionActive {
-            //self.lastCompletedTask = nil
+            // There are pending tasks but restrictions aren't active - enable them
+            print("Pending tasks exist but restrictions inactive - enabling restrictions")
             enableRestrictions()
         }
     }
