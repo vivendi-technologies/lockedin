@@ -3,10 +3,12 @@
 //  lockedin
 //
 //  Created by Kevin Le on 3/22/25.
+//  Updated by Claude on 3/24/25.
 //
 
 import Foundation
 import SwiftUI
+import DeviceActivity
 
 class DailyResetManager: ObservableObject {
     // Reference to the task manager
@@ -45,8 +47,9 @@ class DailyResetManager: ObservableObject {
         DispatchQueue.main.async {
             self.forceCheckDateBasedReset()
             
-            // Schedule next reset
+            // The DeviceActivity system will handle the actual scheduling now
             if self.isDailyResetEnabled {
+                // Only scheduling the local timer as a fallback
                 self.scheduleNextReset()
             }
         }
@@ -86,7 +89,8 @@ class DailyResetManager: ObservableObject {
         return formatter.string(from: date)
     }
     
-    // Schedule the next reset at midnight
+    // Schedule the next reset at midnight - this is now a fallback mechanism
+    // The primary reset happens through DeviceActivity
     private func scheduleNextReset() {
         // Only schedule if enabled
         guard isDailyResetEnabled else { return }
@@ -113,7 +117,8 @@ class DailyResetManager: ObservableObject {
         // Calculate interval until midnight
         let interval = midnight.timeIntervalSince(now)
         
-        print("Next reset scheduled for: \(midnight), which is \(interval) seconds from now")
+        print("Next local reset scheduled for: \(midnight), which is \(interval) seconds from now")
+        print("Note: This is a fallback for the DeviceActivity system")
         
         // Schedule timer
         resetTimer = Timer(timeInterval: interval, target: self, selector: #selector(resetTimerFired), userInfo: nil, repeats: false)
@@ -124,7 +129,7 @@ class DailyResetManager: ObservableObject {
     
     // Timer fired method
     @objc private func resetTimerFired() {
-        print("Reset timer fired at: \(Date())")
+        print("Local reset timer fired at: \(Date())")
         
         // Double check if enabled
         guard isDailyResetEnabled else { return }
@@ -210,10 +215,16 @@ class DailyResetManager: ObservableObject {
             if enabled {
                 // Schedule next reset
                 self.scheduleNextReset()
+                
+                // Also restart device activity monitoring
+                DeviceActivityMonitorCenter.shared.startMonitoring()
             } else {
                 // Cancel scheduled reset
                 self.resetTimer?.invalidate()
                 self.resetTimer = nil
+                
+                // Stop device activity monitoring
+                DeviceActivityMonitorCenter.shared.stopMonitoring()
             }
             
             // Save setting

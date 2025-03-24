@@ -3,10 +3,12 @@
 //  lockedin
 //
 //  Created by Kevin Le on 3/17/25.
+//  Updated by Claude on 3/24/25.
 //
 
 import SwiftUI
 import FamilyControls
+import DeviceActivity
 
 @main
 struct lockedinApp: App {
@@ -27,6 +29,9 @@ struct lockedinApp: App {
                     // Connect the TaskManager to the AppRestrictionManager
                     taskManager.appRestrictionManager = appRestrictionManager
                     
+                    // Set up DeviceActivity monitoring in AppRestrictionManager
+                    appRestrictionManager.setTaskManager(taskManager)
+                    
                     // Connect the AppDelegate TaskManager to the app restriction manager
                     appDelegate.taskManager.appRestrictionManager = appRestrictionManager
                     
@@ -44,6 +49,11 @@ struct lockedinApp: App {
                         // No pending tasks but restrictions are active - fix it
                         print("Fixing restriction state - disabling restrictions")
                         appRestrictionManager.disableRestrictions()
+                    }
+                    
+                    // Ensure DeviceActivity monitoring is set up
+                    if appRestrictionManager.isAuthorized {
+                        appRestrictionManager.setupDeviceActivityMonitoring()
                     }
                 }
         }

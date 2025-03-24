@@ -59,9 +59,9 @@ struct TaskCompletionBanner: View {
                 
                 Spacer()
                 // Add a subtle indicator that you can swipe to dismiss
-                Image(systemName: "chevron.down")
-                    .foregroundColor(.white.opacity(0.7))
-                    .font(.caption)
+//                Image(systemName: "chevron.down")
+//                    .foregroundColor(.white.opacity(0.7))
+//                    .font(.caption)
             }
             .padding(.horizontal)
             .padding(.bottom, 12)

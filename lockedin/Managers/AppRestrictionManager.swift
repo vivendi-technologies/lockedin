@@ -6,31 +6,29 @@ import SwiftUI
 
 class AppRestrictionManager: ObservableObject {
     @Published var isRestrictionActive = false
-    @Published var selectedApps = FamilyActivitySelection() //{
-//        willSet {
-//            let applications = newValue.applicationTokens
-//            let categories = newValue.categoryTokens
-//            let webCategories = newValue.webDomainTokens
-//        }
-//    }
+    @Published var selectedApps = FamilyActivitySelection()
     @Published var restrictionMode: RestrictionMode = .automatic
     @Published var isAuthorized = false
-    //@Published var lastCompletedTask: Task?
-    //@Published var lastCompletedTaskId: UUID? = nil
     
     private let store = ManagedSettingsStore()
     private let center = AuthorizationCenter.shared
+    private var deviceActivityMonitor: DeviceActivityEventMonitor?
     
     func requestAuthorization() async {
-            do {
-                try await center.requestAuthorization(for: .individual)
-                DispatchQueue.main.async {
-                    self.isAuthorized = self.center.authorizationStatus == .approved
+        do {
+            try await center.requestAuthorization(for: .individual)
+            DispatchQueue.main.async {
+                self.isAuthorized = self.center.authorizationStatus == .approved
+                
+                // When authorization is granted, start the background monitoring
+                if self.isAuthorized {
+                    self.setupDeviceActivityMonitoring()
                 }
-            } catch {
-                print("Failed to request authorization: \(error.localizedDescription)")
             }
+        } catch {
+            print("Failed to request authorization: \(error.localizedDescription)")
         }
+    }
     
     // Restriction modes
     enum RestrictionMode: String, Codable, CaseIterable, Identifiable {
@@ -51,6 +49,31 @@ class AppRestrictionManager: ObservableObject {
     
     init() {
         loadSettings()
+        
+        // Check authorization status immediately
+        if center.authorizationStatus == .approved {
+            isAuthorized = true
+        }
+    }
+    
+    // Set up device activity monitoring for background restrictions
+    func setupDeviceActivityMonitoring() {
+        // Start the background monitoring when the app launches
+        DeviceActivityMonitorCenter.shared.startMonitoring()
+    }
+    
+    // Register task manager to be used by the device activity monitor
+    func setTaskManager(_ taskManager: TaskManager) {
+        // Create the device activity monitor with the task manager reference
+        deviceActivityMonitor = DeviceActivityEventMonitor(
+            taskManager: taskManager,
+            appRestrictionManager: self
+        )
+        
+        // Start device activity monitoring if authorized
+        if isAuthorized {
+            setupDeviceActivityMonitoring()
+        }
     }
     
     // Enable restrictions based on the selected mode
@@ -81,7 +104,6 @@ class AppRestrictionManager: ObservableObject {
     
     // Apply automatic restrictions to block most apps
     private func applyAutomaticRestrictions() {
-        //store.shield.applications = . (except: [])
         store.shield.applicationCategories = .all(except: [])
         store.shield.webDomainCategories = .all(except: [])
     }
@@ -96,14 +118,6 @@ class AppRestrictionManager: ObservableObject {
             )
         }
         
-        // For application categories
-//        if !selectedApps.categoryTokens.isEmpty {
-//            // Shield application categories based on the selection
-//            store.shield.applicationCategories = .init(
-//                blockedCategories: Set(selectedApps.categoryTokens)
-//            )
-//        }
-        
         // For web domains
         if !selectedApps.webDomainTokens.isEmpty {
             // Shield web domains based on the selection
@@ -111,17 +125,11 @@ class AppRestrictionManager: ObservableObject {
                 Set(selectedApps.webDomainTokens)
             )
         }
-        
-        // For web domain categories, just block all
-        //store.shield.webDomainCategories = Optional.none
     }
     
-    // In AppRestrictionManager.swift
+    // Check task completion status
     func checkTaskCompletion(tasks: [Task]) {
         let pendingTasks = tasks.filter { $0.status == .pending }
-        
-        // Debug print to verify it's being called
-        print("Checking task completion - pending: \(pendingTasks.count)")
         
         if pendingTasks.isEmpty && isRestrictionActive {
             // All tasks completed - disable restrictions
