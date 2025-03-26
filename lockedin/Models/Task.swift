@@ -17,7 +17,7 @@ enum TaskType: String, Codable, Hashable {
 enum TaskStatus: String, Codable, Hashable {
     case pending
     case completed
-    case verified
+    //case verified
 }
 
 // Struct to represent evidence for task completion
@@ -85,9 +85,9 @@ struct Task: Identifiable, Codable, Hashable {
     }
     
     // Method to verify task completion (to be used with SLM verification)
-    mutating func verify() {
-        self.status = .verified
-    }
+//    mutating func verify() {
+//        self.status = .verified
+//    }
     
     // Implement Hashable
     func hash(into hasher: inout Hasher) {

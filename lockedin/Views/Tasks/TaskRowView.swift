@@ -12,8 +12,8 @@ struct TaskRowView: View {
     
     var body: some View {
         HStack {
-            Image(systemName: statusIcon)
-                .foregroundColor(statusColor)
+            Image(systemName: task.status == .pending ? "circle" : "checkmark.circle.fill")
+                .foregroundColor(task.status == .pending ? .blue : .green)
             
             VStack(alignment: .leading, spacing: 4) {
                 Text(task.title)
@@ -25,34 +25,7 @@ struct TaskRowView: View {
             }
             
             Spacer()
-            
-            if task.status != .pending {
-                Image(systemName: "checkmark.circle.fill")
-                    .foregroundColor(.green)
-            }
         }
         .padding(.vertical, 8)
-    }
-    
-    private var statusIcon: String {
-        switch task.status {
-        case .pending:
-            return "circle"
-        case .completed:
-            return "checkmark.circle"
-        case .verified:
-            return "checkmark.seal.fill"
-        }
-    }
-    
-    private var statusColor: Color {
-        switch task.status {
-        case .pending:
-            return .blue
-        case .completed:
-            return .orange
-        case .verified:
-            return .green
-        }
     }
 }

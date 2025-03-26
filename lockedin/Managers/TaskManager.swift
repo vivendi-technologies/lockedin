@@ -97,7 +97,6 @@ class TaskManager: ObservableObject {
         }
     }
     
-    // In TaskManager.swift, let's modify the completeTask function:
     func completeTask(id: UUID, textDescription: String? = nil, imageData: UIImage? = nil) {
         DispatchQueue.main.async {
             if let index = self.tasks.firstIndex(where: { $0.id == id }) {
@@ -271,7 +270,17 @@ class TaskManager: ObservableObject {
     private func loadTasks() {
         if let savedTasks = UserDefaults.standard.data(forKey: "SavedTasks") {
             if let decodedTasks = try? JSONDecoder().decode([Task].self, from: savedTasks) {
-                tasks = decodedTasks
+                // Handle migrating tasks from old schema that may include verified status
+                let migratedTasks = decodedTasks.map { task -> Task in
+                    var updatedTask = task
+                    // Convert any tasks with status other than pending to completed
+                    if updatedTask.status != .pending {
+                        updatedTask.status = .completed
+                    }
+                    return updatedTask
+                }
+                
+                tasks = migratedTasks
                 return
             }
         }

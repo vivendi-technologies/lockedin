@@ -39,12 +39,12 @@ struct ContentView: View {
                             Button(action: {
                                 showingAppSettings = true
                             }) {
-                                Image(systemName: "gear")
+                                Image(systemName: "arrow.right.circle")
                                     .foregroundColor(.white)
                             }
                         }
                         .padding()
-                        .background(Color.blue)
+                        .background(Color.red)
                         .cornerRadius(10)
                         .padding(.horizontal)
                         .padding(.top, 4)
