@@ -129,6 +129,9 @@ class DeviceActivityEventMonitor: DeviceActivityMonitor {
                 if resetCount > 0 {
                     appRestrictionManager.enableRestrictions(preserveSelection: true)
                     print("Re-enabled restrictions after midnight reset (preserving app selection)")
+                    
+                    // Store a flag to show the reset banner next time the app opens
+                    UserDefaults.standard.set(true, forKey: "ShouldShowResetBanner")
                 }
                 
                 // Update last reset date in UserDefaults

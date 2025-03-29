@@ -20,22 +20,23 @@ class AppDelegate: NSObject, UIApplicationDelegate {
     
     // Register background tasks for midnight reset
     private func registerBackgroundTasks() {
-        // Register for background processing task
+        // IMPORTANT: Only register each identifier once
+        // Register for background processing task for midnight reset
         BGTaskScheduler.shared.register(
-            forTaskWithIdentifier: "com.vivendi.lockedin.midnightReset",
+            forTaskWithIdentifier: RegularlyScheduledTask.shared.midnightTaskIdentifier,
             using: nil) { task in
                 self.handleMidnightReset(task: task as! BGProcessingTask)
         }
         
-        // Add the new app refresh task registration
+        // Register app refresh task
+        let appRefreshIdentifier = "com.vivendi.lockedin.appRefresh"
         BGTaskScheduler.shared.register(
-            forTaskWithIdentifier: "com.vivendi.lockedin.appRefresh",
+            forTaskWithIdentifier: appRefreshIdentifier,
             using: nil) { task in
                 self.handleAppRefresh(task: task as! BGAppRefreshTask)
         }
         
         // Schedule both types of tasks
-        RegularlyScheduledTask.shared.configureBackgroundTask()
         RegularlyScheduledTask.shared.startBackgroundTaskScheduling()
         scheduleAppRefresh()
     }

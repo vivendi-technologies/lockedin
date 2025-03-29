@@ -16,7 +16,8 @@ class TaskManager: ObservableObject {
     // Using the injected reference:
     var appRestrictionManager: AppRestrictionManager?
     
-    private var taskCompletionCheckTimer: Timer?
+    // REMOVE THIS TIMER - it's causing problems
+    // private var taskCompletionCheckTimer: Timer?
     
     // Predefined tasks that the app will offer
     private let predefinedTasks: [Task] = [
@@ -32,15 +33,11 @@ class TaskManager: ObservableObject {
     
     init() {
         loadTasks()
-        setupTaskCompletionTimer()
-    }
-    
-    private func setupTaskCompletionTimer() {
-        taskCompletionCheckTimer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { [weak self] _ in
-            guard let self = self else { return }
-            // Use the injected appRestrictionManager instead
-            self.appRestrictionManager?.checkTaskCompletion(tasks: self.tasks)
-        }
+        // REMOVE TIMER SETUP - no more timers!
+        // setupTaskCompletionTimer()
+        
+        // Instead, check status once at startup
+        checkAllTasksCompletion()
     }
     
     // MARK: - Task Management
@@ -54,10 +51,10 @@ class TaskManager: ObservableObject {
             self.tasks.append(task)
             self.saveTasks()
             
-            // FIXED: Now we explicitly check if the task is pending and force enable restrictions
+            // Only check restriction state if the new task is pending
             if task.status == .pending {
-                print("New pending task added - re-enabling restrictions")
-                self.appRestrictionManager?.enableRestrictions()
+                print("New pending task added - directly enabling restrictions")
+                self.appRestrictionManager?.enableRestrictions(preserveSelection: true)
             }
         }
     }
@@ -84,16 +81,18 @@ class TaskManager: ObservableObject {
         }
     }
     
-    // Check if all tasks are completed
+    // Check if all tasks are completed - no more timers!
     private func checkAllTasksCompletion() {
         let pendingTasks = tasks.filter { $0.status == .pending }
         
         if tasks.isEmpty || pendingTasks.isEmpty {
             // All tasks completed or no tasks - disable restrictions
+            print("checkAllTasksCompletion: No pending tasks - disabling restrictions")
             appRestrictionManager?.disableRestrictions()
         } else {
             // Some tasks are still pending - ensure restrictions are active
-            appRestrictionManager?.enableRestrictions()
+            print("checkAllTasksCompletion: Pending tasks exist - enabling restrictions")
+            appRestrictionManager?.enableRestrictions(preserveSelection: true)
         }
     }
     
@@ -120,10 +119,11 @@ class TaskManager: ObservableObject {
                 // Trigger the completion notification
                 self.completionNotifier.notifyCompleted(self.tasks[index])
                 
-                // Check if all tasks are completed
+                // Check if all tasks are completed - directly check, no timers
                 let pendingTasks = self.tasks.filter { $0.status == .pending }
                 if pendingTasks.isEmpty {
                     // All tasks completed - disable restrictions
+                    print("completeTask: All tasks completed - disabling restrictions")
                     self.appRestrictionManager?.disableRestrictions()
                 }
             }
@@ -307,7 +307,6 @@ class TaskManager: ObservableObject {
     }
     
     deinit {
-        taskCompletionCheckTimer?.invalidate()
     }
 }
 

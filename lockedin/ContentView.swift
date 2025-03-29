@@ -20,12 +20,16 @@ struct ContentView: View {
     @State private var showingCompletionBanner = false
     @State private var completedTaskTitle = ""
     
+    @State private var showingRestrictionBanner = false
+    @State private var restrictionBannerTimer: Timer?
+    
     var body: some View {
         NavigationStack {
             ZStack {
+                // Use this in the VStack for the restriction banner
                 VStack(spacing: 0) {
-                    // App restriction banner now appears below the navigation title
-                    if appRestrictionManager.isRestrictionActive {
+                    // App restriction banner now appears based on the dedounced state
+                    if showingRestrictionBanner {
                         HStack {
                             Image(systemName: "lock.fill")
                                 .foregroundColor(.white)
@@ -49,6 +53,7 @@ struct ContentView: View {
                         .padding(.horizontal)
                         .padding(.top, 4)
                         .shadow(radius: 2)
+                        .transition(.opacity) // Smooth transition
                     }
                     
                     // Main task list view
@@ -133,6 +138,7 @@ struct ContentView: View {
             .onAppear {
                 requestAuthorizationIfNeeded()
                 wasRestrictionActive = appRestrictionManager.isRestrictionActive
+                updateRestrictionBannerState()
                 
                 // Check if tasks were reset in the background
                 if UserDefaults.standard.bool(forKey: "ShouldShowResetBanner") {
@@ -160,6 +166,7 @@ struct ContentView: View {
                     RegularlyScheduledTask.shared.startBackgroundTaskScheduling()
                 }
             }
+            // Monitor for app unlock events
             // Monitor for app unlock events
             .onReceive(appRestrictionManager.$isRestrictionActive) { isActive in
                 // Only show banner when restrictions change from active to inactive
@@ -243,6 +250,25 @@ struct ContentView: View {
                     // Enable restrictions using the shared instance
                     appRestrictionManager.enableRestrictions()
                 }
+            }
+        }
+    }
+    
+    func updateRestrictionBannerState() {
+        let isActive = appRestrictionManager.isRestrictionActive
+        
+        // Avoid unnecessary updates
+        if (isActive && showingRestrictionBanner) || (!isActive && !showingRestrictionBanner) {
+            return
+        }
+        
+        // Cancel any existing timer to prevent race conditions
+        restrictionBannerTimer?.invalidate()
+        
+        // Update banner state with animation
+        restrictionBannerTimer = Timer.scheduledTimer(withTimeInterval: 0.5, repeats: false) { [self] _ in
+            withAnimation(.easeInOut(duration: 0.3)) {
+                showingRestrictionBanner = isActive
             }
         }
     }

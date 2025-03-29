@@ -9,7 +9,6 @@ class AppRestrictionManager: ObservableObject {
     @Published var selectedApps = FamilyActivitySelection()
     @Published var restrictionMode: RestrictionMode = .automatic
     @Published var isAuthorized = false
-    //@Published var showingNiceTryOverlay = false
     
     private let store = ManagedSettingsStore()
     private let center = AuthorizationCenter.shared
@@ -57,13 +56,6 @@ class AppRestrictionManager: ObservableObject {
         }
     }
     
-    // Set up device activity monitoring for background restrictions
-    func setupDeviceActivityMonitoring() {
-        // Start the background monitoring when the app launches
-        DeviceActivityMonitorCenter.shared.startMonitoring()
-    }
-    
-    // Register task manager to be used by the device activity monitor
     func setTaskManager(_ taskManager: TaskManager) {
         // Create the device activity monitor with the task manager reference
         deviceActivityMonitor = DeviceActivityEventMonitor(
@@ -75,14 +67,21 @@ class AppRestrictionManager: ObservableObject {
         if isAuthorized {
             setupDeviceActivityMonitoring()
         }
+        
+        // Do not set up any regular checks - we'll only check at specific events
+    }
+    
+    // Set up device activity monitoring for background restrictions
+    func setupDeviceActivityMonitoring() {
+        // Start the background monitoring when the app launches
+        DeviceActivityMonitorCenter.shared.startMonitoring()
     }
     
     // Enable restrictions based on the selected mode
     func enableRestrictions(preserveSelection: Bool = false) {
         guard isAuthorized else { return }
         
-        // If preserveSelection is true, make sure we don't overwrite the existing selection
-        // when applying restrictions
+        // Apply the actual shield restrictions
         switch restrictionMode {
         case .automatic:
             applyAutomaticRestrictions()
@@ -137,21 +136,6 @@ class AppRestrictionManager: ObservableObject {
         }
     }
     
-    // Check task completion status
-    func checkTaskCompletion(tasks: [Task]) {
-        let pendingTasks = tasks.filter { $0.status == .pending }
-        
-        if pendingTasks.isEmpty && isRestrictionActive {
-            // All tasks completed - disable restrictions
-            print("All tasks completed - disabling restrictions")
-            disableRestrictions()
-        } else if !pendingTasks.isEmpty && !isRestrictionActive {
-            // There are pending tasks but restrictions aren't active - enable them
-            print("Pending tasks exist but restrictions inactive - enabling restrictions")
-            enableRestrictions()
-        }
-    }
-    
     // Save settings to UserDefaults
     private func saveSettings() {
         UserDefaults.standard.set(isRestrictionActive, forKey: "isRestrictionActive")
@@ -173,7 +157,7 @@ class AppRestrictionManager: ObservableObject {
         
         // If restrictions should be active, reapply them (in case of app restart)
         if isRestrictionActive {
-            enableRestrictions()
+            enableRestrictions(preserveSelection: true)
         }
     }
 }

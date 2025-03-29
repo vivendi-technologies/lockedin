@@ -20,17 +20,11 @@ import SwiftUI
 class RegularlyScheduledTask {
     static let shared = RegularlyScheduledTask()
     
-    private let midnightTaskIdentifier = "com.vivendi.lockedin.midnightReset"
+    let midnightTaskIdentifier = "com.vivendi.lockedin.midnightReset"
     
-    // Configure the background task system
     func configureBackgroundTask() {
-        // Register task handler for midnight reset
-        BGTaskScheduler.shared.register(
-            forTaskWithIdentifier: midnightTaskIdentifier,
-            using: nil) { task in
-                // This task will be executed at scheduled times
-                self.handleMidnightReset(task: task as! BGProcessingTask)
-            }
+        // Registration is now fully handled in AppDelegate
+        print("Background task configuration set up - registration handled by AppDelegate")
     }
     
     // Update the scheduleMidnightReset method in RegularlyScheduledTask.swift
