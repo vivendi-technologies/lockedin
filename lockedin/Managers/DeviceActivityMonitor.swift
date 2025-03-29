@@ -43,6 +43,7 @@ class DeviceActivityMonitorCenter {
         // Private initializer to enforce singleton pattern
     }
     
+    // Update the startMonitoring method in DeviceActivityMonitorCenter
     func startMonitoring() {
         print("🌙 Starting midnight monitoring schedule")
         
@@ -56,9 +57,20 @@ class DeviceActivityMonitorCenter {
         stopMonitoring()
         
         do {
-            // Schedule the midnight transition monitoring
-            try center.startMonitoring(.daily, during: .dailyReset)
+            // Create a broader window around midnight to ensure the event is caught
+            // Schedule for daily transitions with wider window (11:45 PM - 12:15 AM)
+            let schedule = DeviceActivitySchedule(
+                intervalStart: DateComponents(hour: 23, minute: 45),
+                intervalEnd: DateComponents(hour: 0, minute: 15),
+                repeats: true
+            )
+            
+            // Start monitoring with the new schedule
+            try center.startMonitoring(.daily, during: schedule)
             print("✅ Successfully scheduled midnight monitoring")
+            
+            // Record that we've set up monitoring
+            UserDefaults.standard.set(true, forKey: "DeviceActivityMonitoringEnabled")
         } catch {
             print("❌ Failed to start monitoring: \(error.localizedDescription)")
         }
@@ -113,10 +125,10 @@ class DeviceActivityEventMonitor: DeviceActivityMonitor {
                 let resetCount = taskManager.resetAllTasks()
                 print("Reset \(resetCount) tasks at midnight")
                 
-                // Re-enable restrictions if needed
+                // Re-enable restrictions if needed, but preserve the user's selection
                 if resetCount > 0 {
-                    appRestrictionManager.enableRestrictions()
-                    print("Re-enabled restrictions after midnight reset")
+                    appRestrictionManager.enableRestrictions(preserveSelection: true)
+                    print("Re-enabled restrictions after midnight reset (preserving app selection)")
                 }
                 
                 // Update last reset date in UserDefaults

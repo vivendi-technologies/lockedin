@@ -129,9 +129,20 @@ struct ContentView: View {
                     }
                 }
             )
+            // Add this to the onAppear block in ContentView
             .onAppear {
                 requestAuthorizationIfNeeded()
                 wasRestrictionActive = appRestrictionManager.isRestrictionActive
+                
+                // Check if tasks were reset in the background
+                if UserDefaults.standard.bool(forKey: "ShouldShowResetBanner") {
+                    UserDefaults.standard.set(false, forKey: "ShouldShowResetBanner")
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                        withAnimation {
+                            showingResetBanner = true
+                        }
+                    }
+                }
                 
                 // Reset the justCompletedAllTasks flag when tasks change
                 if !taskManager.tasks.isEmpty && taskManager.tasks.contains(where: { $0.status == .pending }) {
@@ -139,8 +150,14 @@ struct ContentView: View {
                     
                     // ADDED: Ensure restrictions are enabled if pending tasks exist
                     if !appRestrictionManager.isRestrictionActive {
-                        appRestrictionManager.enableRestrictions()
+                        appRestrictionManager.enableRestrictions(preserveSelection: true)
                     }
+                }
+                
+                // Ensure background task and device activity monitoring are set up
+                if appRestrictionManager.isAuthorized {
+                    appRestrictionManager.setupDeviceActivityMonitoring()
+                    RegularlyScheduledTask.shared.startBackgroundTaskScheduling()
                 }
             }
             // Monitor for app unlock events

@@ -33,7 +33,7 @@ class RegularlyScheduledTask {
             }
     }
     
-    // Schedule the next midnight reset task
+    // Update the scheduleMidnightReset method in RegularlyScheduledTask.swift
     func scheduleMidnightReset() {
         let request = BGProcessingTaskRequest(identifier: midnightTaskIdentifier)
         
@@ -43,27 +43,39 @@ class RegularlyScheduledTask {
         components.day! += 1 // Tomorrow
         components.hour = 0
         components.minute = 0
-        components.second = 0
+        components.second = 5 // Small delay after midnight
         
         if let midnight = calendar.date(from: components) {
             // Set earliest begin date to midnight
             request.earliestBeginDate = midnight
             
-            // High priority - important for app functionality
+            // Make sure we don't require any conditions that might prevent execution
             request.requiresNetworkConnectivity = false
             request.requiresExternalPower = false
             
             do {
                 try BGTaskScheduler.shared.submit(request)
                 print("🔄 Scheduled background task for midnight: \(midnight)")
+                
+                // Add redundancy - schedule multiple tasks with slightly different times
+                // Schedule a backup task 5 minutes after midnight
+                let backupRequest = BGProcessingTaskRequest(identifier: midnightTaskIdentifier)
+                components.minute = 5
+                if let backupTime = calendar.date(from: components) {
+                    backupRequest.earliestBeginDate = backupTime
+                    backupRequest.requiresNetworkConnectivity = false
+                    backupRequest.requiresExternalPower = false
+                    try BGTaskScheduler.shared.submit(backupRequest)
+                    print("🔄 Scheduled backup background task for: \(backupTime)")
+                }
             } catch {
                 print("❌ Could not schedule background task: \(error.localizedDescription)")
             }
         }
     }
     
-    // Handle the midnight reset task
-    private func handleMidnightReset(task: BGProcessingTask) {
+    // Update the handleMidnightReset method in RegularlyScheduledTask.swift
+    func handleMidnightReset(task: BGProcessingTask) {
         // Keep track of completion
         var backgroundTaskID = UIBackgroundTaskIdentifier.invalid
         
@@ -96,8 +108,12 @@ class RegularlyScheduledTask {
             
             // Re-enable restrictions if needed
             if resetCount > 0, let appRestrictionManager = appRestrictionManager {
-                appRestrictionManager.enableRestrictions()
-                print("🔒 Re-enabled restrictions in background")
+                // Important: Preserve user's app selection
+                appRestrictionManager.enableRestrictions(preserveSelection: true)
+                print("🔒 Re-enabled restrictions in background (preserving app selection)")
+                
+                // Store a flag to show the reset banner next time the app opens
+                UserDefaults.standard.set(true, forKey: "ShouldShowResetBanner")
             }
             
             // Update last reset date

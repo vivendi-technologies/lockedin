@@ -166,6 +166,9 @@ class DailyResetManager: ObservableObject {
             if resetCount > 0 {
                 self.didResetToday = true
                 
+                // Re-enable restrictions but preserve user selection
+                taskManager.appRestrictionManager?.enableRestrictions(preserveSelection: true)
+                
                 // Auto-hide notification after delay
                 DispatchQueue.main.asyncAfter(deadline: .now() + 3) { [weak self] in
                     self?.didResetToday = false

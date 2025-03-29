@@ -437,7 +437,7 @@
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = lockedin/Info.plist;
-				INFOPLIST_KEY_CFBundleDisplayName = Bloom;
+				INFOPLIST_KEY_CFBundleDisplayName = "Nice Try Diddy";
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.productivity";
 				INFOPLIST_KEY_NSCameraUsageDescription = "LockedIn needs camera access to take photos as evidence of completed tasks.";
 				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "LockedIn needs access to your photos so you can submit evidence of completed tasks.";
@@ -474,7 +474,7 @@
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = lockedin/Info.plist;
-				INFOPLIST_KEY_CFBundleDisplayName = Bloom;
+				INFOPLIST_KEY_CFBundleDisplayName = "Nice Try Diddy";
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.productivity";
 				INFOPLIST_KEY_NSCameraUsageDescription = "LockedIn needs camera access to take photos as evidence of completed tasks.";
 				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "LockedIn needs access to your photos so you can submit evidence of completed tasks.";

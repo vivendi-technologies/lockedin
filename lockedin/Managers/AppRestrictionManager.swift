@@ -9,6 +9,7 @@ class AppRestrictionManager: ObservableObject {
     @Published var selectedApps = FamilyActivitySelection()
     @Published var restrictionMode: RestrictionMode = .automatic
     @Published var isAuthorized = false
+    //@Published var showingNiceTryOverlay = false
     
     private let store = ManagedSettingsStore()
     private let center = AuthorizationCenter.shared
@@ -77,13 +78,22 @@ class AppRestrictionManager: ObservableObject {
     }
     
     // Enable restrictions based on the selected mode
-    func enableRestrictions() {
+    func enableRestrictions(preserveSelection: Bool = false) {
         guard isAuthorized else { return }
+        
+        // If preserveSelection is true, make sure we don't overwrite the existing selection
+        // when applying restrictions
         switch restrictionMode {
         case .automatic:
             applyAutomaticRestrictions()
         case .custom:
-            applyCustomRestrictions()
+            // Only apply custom restrictions if we have a selection
+            if !selectedApps.applicationTokens.isEmpty || preserveSelection {
+                applyCustomRestrictions()
+            } else {
+                // Fall back to automatic restrictions if no selection and not preserving
+                applyAutomaticRestrictions()
+            }
         }
         
         isRestrictionActive = true
